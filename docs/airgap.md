@@ -289,6 +289,16 @@ daemon): `CLUSTER_NAME`, `AIRGAP_CLUSTER_NAME`, `WORKLOAD_REGISTRY_HOST`,
    node status to `/tmp/airgap-cert-manager-debug.txt` when that step fails,
    while the kind cluster is still up on the runner, uploaded alongside the
    deployment evidence.
+8. **A `tag@sha256` bundle image and a tag-only pod image do not meet in the
+   registry.** Zarf stores the bundled image by digest only
+   (`<repo>@sha256:...`, no tag), while the agent rewrites a tag-only pod image
+   to `<tag>-zarf-<crc>`, which was never pushed. cert-manager's pods sat in
+   ImagePullBackOff (`NotFound`) until the Helm timeout, from the digest pins in
+   #189 until this fix. `airgap/values/cert-manager.yaml` therefore sets each
+   image's `digest`, so the pods reference the same digest the bundle carries;
+   `airgap/tests/test-airgap-cert-manager-digest-values.py` fails if they
+   drift. Renovate does not update these values, so bump them together with
+   `images.txt`.
 
 ## Known limitations / follow-ups
 
