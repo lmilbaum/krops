@@ -276,27 +276,54 @@ cosign verify-attestation \
 | Quota | Code | Needed | Why |
 |---|---|---|---|
 | EC2-VPC Elastic IPs (per region) | `L-0263D0A3` | ≥ 6 free in `eu-north-1`, ≥ 3 free in `eu-west-1` | One EIP per NAT gateway (3 AZs): two clusters in `eu-north-1` (management + workload), one in `eu-west-1` |
-| VPCs per region | `L-F678F1CE` | ≥ 2 free in `eu-north-1`, ≥ 1 free in `eu-west-1` | One VPC per cluster (two full runs in eu-north-1, one in eu-west-1). e2e account 120392301094, as of 2026-09-20 (#382): eu-north-1 quota raised to 8 (approved; 5 in use, headroom 3), eu-west-1 at default 5 (3 in use, headroom 2). Usage drifts in this shared account; re-check before relying on the headroom (command below). |
+| VPCs per region | `L-F678F1CE` | ≥ 2 free in `eu-north-1`, ≥ 1 free in `eu-west-1` | One VPC per cluster: two clusters in a full run in `eu-north-1`, one cluster in `eu-west-1`. In e2e account 120392301094, as of 2026-09-20 (#382), the `eu-north-1` total quota was 8 (5 in use, 3 free) and the `eu-west-1` total quota was 5 (3 in use, 2 free). This is a dated snapshot, not guaranteed headroom; usage in the shared account drifts, so re-check it before every run. |
 
-Both quotas default to 5 per region. The EIP quota stalls the run mid-way through the second `eu-north-1` cluster (6 EIPs needed); a nearly full VPC quota fails the run at VPC creation. Request both increases before the first run.
-
-To increase the Elastic IP quota:
+Both quotas default to 5 per region. The EIP quota stalls the run mid-way through the second `eu-north-1` cluster (6 EIPs needed); insufficient free VPC capacity fails the run at VPC creation. Before every run, query the configured quota and current usage for both resources in both target regions:
 
 ```sh
-aws service-quotas request-service-quota-increase --service-code ec2 --quota-code L-0263D0A3 --desired-value <n> --region <region>
+for region in eu-north-1 eu-west-1; do
+  echo "$region: Elastic IP quota and usage"
+  aws service-quotas get-service-quota \
+    --service-code ec2 \
+    --quota-code L-0263D0A3 \
+    --region "$region" \
+    --query 'Quota.Value'
+  aws ec2 describe-addresses \
+    --region "$region" \
+    --query 'length(Addresses)'
+
+  echo "$region: VPC quota and usage"
+  aws service-quotas get-service-quota \
+    --service-code vpc \
+    --quota-code L-F678F1CE \
+    --region "$region" \
+    --query 'Quota.Value'
+  aws ec2 describe-vpcs \
+    --region "$region" \
+    --query 'length(Vpcs)'
+done
 ```
 
-To increase the VPCs-per-region quota (service code is `vpc`, not `ec2`):
+Subtract usage from the configured quota to calculate free capacity. EIPs require at least 6 free in `eu-north-1` and 3 free in `eu-west-1`; request an increase in each region where that capacity is unavailable. VPCs require at least 2 free in `eu-north-1` and 1 free in `eu-west-1`; request a VPC increase only in a region where its required free capacity is unavailable.
+
+For quota-increase requests, `--desired-value` is the new **total regional quota**, not the amount of additional capacity. Set it to at least the current usage plus the required free slots. To increase the Elastic IP quota where needed:
 
 ```sh
-aws service-quotas request-service-quota-increase --service-code vpc --quota-code L-F678F1CE --desired-value <n> --region <region>
+region=eu-north-1 # Set the region that lacks the required free capacity.
+required_free=6   # Use 6 for eu-north-1 or 3 for eu-west-1.
+current_usage="$(aws ec2 describe-addresses --region "$region" --query 'length(Addresses)' --output text)"
+desired_value=$((current_usage + required_free))
+aws service-quotas request-service-quota-increase --service-code ec2 --quota-code L-0263D0A3 --desired-value "$desired_value" --region "$region"
 ```
 
-To re-check current quota and usage for VPCs in eu-north-1:
+To increase the VPCs-per-region quota where needed (service code is `vpc`, not `ec2`):
 
 ```sh
-aws service-quotas get-service-quota --service-code vpc --quota-code L-F678F1CE --region eu-north-1
-aws ec2 describe-vpcs --region eu-north-1 --query 'length(Vpcs)'
+region=eu-north-1 # Set the region that lacks the required free capacity.
+required_free=2   # Use 2 for eu-north-1 or 1 for eu-west-1.
+current_usage="$(aws ec2 describe-vpcs --region "$region" --query 'length(Vpcs)' --output text)"
+desired_value=$((current_usage + required_free))
+aws service-quotas request-service-quota-increase --service-code vpc --quota-code L-F678F1CE --desired-value "$desired_value" --region "$region"
 ```
 
 Bootstrap now enforces the EIP quota at runtime during preflight checks before
