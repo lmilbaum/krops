@@ -209,6 +209,9 @@ jobs:
       - name: KCC operator pin cross-check
         run: python3 tests/test-kcc-operator-pin.py
 
+      - name: kind Corefile pin vs mise.toml (#355)
+        run: python3 tests/test-kind-corefile-pin.py
+
       - name: ACK CR scope vs documented principal (#411)
         run: python3 tests/test-aws-iam-doc-scope.py
 

@@ -144,9 +144,12 @@ resources. There is no app source code here, only declarative infrastructure.
   (ASO endpoint configuration via `aso-controller-settings`, plus a
   CoreDNS rewrite covering CAPZ and MSAL instance discovery); `gcp/`
   mirrors the reference with the CoreDNS-rewrite + SAN-cert interception
-  and WIF credential repoint from its Phase 0 spike. The kustomize
-  overlays here are built by `mise run validate` like the `mgmt`/`workload`
-  ones.
+  and WIF credential repoint from its Phase 0 spike. `tests/test-kind-corefile-pin.py` (in
+  `mise run validate` and CI) requires the kind version in the GCP arm's
+  `patches/coredns-rewrites.yaml` header to match the `mise.toml` kind pin:
+  Renovate bumps only `mise.toml`, so the gate goes red until the full
+  Corefile is regenerated. The kustomize overlays here are built by `mise run
+  validate` like the `mgmt`/`workload` ones.
 - `bootstrap-rs/`: `krops-bootstrap`, the Rust CLI that ports the imperative
   lifecycle (bootstrap + pivot; teardown under issue #100). Behavioral port:
   same step order, messages, and env interface as the scripts, plus

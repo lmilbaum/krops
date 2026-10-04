@@ -153,6 +153,11 @@ if ! python3 tests/test-kcc-operator-pin.py; then
   echo "    FAILED: kcc operator pin" >&2
   fail=1
 fi
+echo "==> kind Corefile pin (virtualized-e2e CoreDNS patch vs mise kind)"
+if ! python3 tests/test-kind-corefile-pin.py; then
+  echo "    FAILED: kind Corefile pin" >&2
+  fail=1
+fi
 echo "==> ACK CR placement guard (#411)"
 if ! python3 tests/test-ack-cr-placement.py; then
   echo "    FAILED: ACK CR placement" >&2
