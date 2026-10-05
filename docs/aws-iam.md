@@ -26,7 +26,12 @@ outside this repo, same as the CAPA permissions):
 - **S3**: `s3:ListAllMyBuckets` + `s3:GetBucketLocation` on `*`, and bucket
   management on `arn:aws:s3:::krops-*` only: `s3:CreateBucket`,
   `s3:DeleteBucket`, `s3:GetBucket*`/`s3:PutBucket*`,
-  `s3:DeleteBucketPolicy`, encryption/lifecycle/replication/accelerate/
+  `s3:DeleteBucketPolicy`, `s3:GetEncryptionConfiguration`/
+  `PutEncryptionConfiguration`, `s3:GetAccelerateConfiguration`,
+  `s3:GetAnalyticsConfiguration`, `s3:GetIntelligentTieringConfiguration`,
+  `s3:GetInventoryConfiguration`, `s3:GetLifecycleConfiguration`,
+  `s3:GetMetricsConfiguration`, `s3:GetReplicationConfiguration`,
+  lifecycle/replication/accelerate/
   analytics/inventory/metrics/intelligent-tiering configuration Get+Put,
   `s3:ListBucket`, `s3:TagResource` (the `CreateBucket` tagSet is authorized
   against it, see #352/#353) and `s3:DeleteBucketTagging` (tag-removal
@@ -52,7 +57,12 @@ outside this repo, same as the CAPA permissions):
   `ListAttachedRolePolicies`/`ListInstanceProfilesForRole`/`TagRole`/
   `UntagRole`/`ListRoleTags`) scoped to `arn:aws:iam::*:role/krops-*`, plus
   the user actions for the `krops-reader` console user
-  (`iam:CreateUser`/`PutUserPolicy`/`GetUser`/`GetUserPolicy`/`TagUser`)
+  (`iam:CreateUser`/`UpdateUser`/`DeleteUser`/`PutUserPolicy`/`DeleteUserPolicy`/
+  `GetUser`/`GetUserPolicy`/`ListUserPolicies`/`ListAttachedUserPolicies`/
+  `TagUser`/`UntagUser`/`ListUserTags`). The pinned IAM controller reads
+  attached and inline policies and tags on every refresh, and removes inline
+  policies and tags during drift reconciliation (even though krops declares
+  no attached managed policies)
 
 The trade-off is real: name-scoped `iam:CreateRole` + `iam:PutRolePolicy` is
 still a privilege-escalation surface (any permission can be granted to a

@@ -210,7 +210,9 @@ jobs:
         run: python3 tests/test-kcc-operator-pin.py
 
       - name: ACK CR scope vs documented principal (#411)
-        run: python3 tests/test-aws-iam-doc-scope.py
+        run: |
+          uv run python tests/test-aws-iam-doc-scope.py
+          uv run python tests/test-aws-iam-doc-scope-regressions.py
 
       - name: AWS run-tag standard (#381)
         run: |
