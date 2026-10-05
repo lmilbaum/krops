@@ -191,6 +191,7 @@ jobs:
           python3 tests/test-toolbox-run-exec.py
           python3 tests/test-toolbox-run-env-precedence.py
           python3 tests/test-oci-push-worktree.py
+          python3 tests/test-toolbox-run-azure-session.py
 
       - name: cert-manager version consistency (#322)
         run: python3 tests/test-cert-manager-version-consistency.py

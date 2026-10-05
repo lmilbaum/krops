@@ -198,6 +198,11 @@ resources. There is no app source code here, only declarative infrastructure.
   `mise.gcp.toml` (gcloud, plus the `gcp-bootstrap`, `wif-federate` and
   `kubeconfigs` tasks; gcloud state lives in the gitignored `.gcloud/`
   shared with the toolbox) are the other per-environment layers.
+  The lifecycle wrapper mounts `$HOME/.krops-azure` at the effective
+  `AZURE_CONFIG_DIR` (default `/root/.azure`, resolved after `.env`) to reuse
+  Azure login sessions. `arc-federate` checks/login before subscription selection;
+  `tests/test-toolbox-run-azure-session.py` guards cache forwarding and login
+  failure ordering in validate and CI.
   Helper tasks run inside the toolbox image via `--entrypoint mise`
   (issue #423); `validate` and `podinfo-port-forward` stay host tasks by
   design; `MISE_AUTO_INSTALL=0` is mandatory for in-toolbox runs and mise's

@@ -83,7 +83,7 @@ def run_wrapper(env_lines: list[str], extra_env=None) -> dict:
             os.chmod(stub, 0o755)
         log = tmp / "stub.log"
         env = {k: v for k, v in os.environ.items() if k not in TEST_KEYS}
-        env.update(PATH=f"{bin_dir}:{env['PATH']}", STUB_LOG=str(log))
+        env.update(PATH=f"{bin_dir}:{env['PATH']}", STUB_LOG=str(log), HOME=str(tmp / "home"))
         env.update(extra_env or {})
         result = subprocess.run(
             ["bash", str(wrapper), "bootstrap"],
