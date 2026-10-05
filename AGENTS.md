@@ -201,7 +201,10 @@ resources. There is no app source code here, only declarative infrastructure.
 3. Secrets via SOPS + age. Encrypted manifests are named `*.sops.yaml` and
    only `data`/`stringData` fields are encrypted (per `.sops.yaml`). Never
    commit plaintext secrets; `age.agekey` and `.env` are gitignored and must
-   stay that way. Encrypt with `mise run sops-encrypt <file>`.
+   stay that way. Encrypt with `mise run sops-encrypt <file>`. AWS key rotation
+   must cover CAPA, management ACK, and `.env` together; follow
+   `docs/secrets.md` and verify both controller consumers after merge before
+   declaring replacement adoption.
 4. Run `mise run validate` before pushing. PRs are reviewed as rendered Flux
    diffs by the konflate GitHub Actions workflow (backed by an in-cluster
    instance), so what you push is what gets reviewed.
