@@ -12,8 +12,9 @@ kubeadm's expected tag next to the offending pin.
 The kubeadm binary is verified against its published SHA-256 before it runs,
 and every pinned digest is compared with the registry's digest for that tag.
 `--fix` rewrites the tracked pins in images.txt from kubeadm and the registry
-instead of checking them (the Renovate rule for coredns, etcd and pause is
-disabled, so this is how they move).
+instead of checking them, after requiring complete management and workload
+sections. Renovate continues to update pins; `--fix` is the manual correction
+path for kubeadm-selected tags and their registry digests.
 
 kubeadm has no macOS build, so on a non-Linux host this runs it inside a
 Linux container instead of requiring a local Linux toolchain; the project
@@ -142,14 +143,17 @@ def registry_digest(name: str, tag: str) -> str:
         return "sha256:" + hashlib.sha256(response.read()).hexdigest()
 
 
-def images_txt_pins() -> list:
-    """[(section, line_number, name, tag, digest)] for every tracked component pin."""
+def images_txt_inventory() -> tuple:
+    """Return section headers independently of pins, plus every tracked pin."""
     pins = []
+    sections = {}
     section = 0
     for number, line in enumerate(IMAGES_TXT.read_text().splitlines(), 1):
         code = line.strip()
         if code.startswith("# \u2500\u2500"):
             section += 1
+            category = re.search(r"\[([MHW])\]", code)
+            sections[section] = category.group(1) if category else None
             continue
         if not code or code.startswith("#"):
             continue
@@ -159,7 +163,34 @@ def images_txt_pins() -> list:
         pins.append(
             (section, number, match.group("name"), match.group("tag"), match.group("digest"))
         )
-    return pins
+    return sections, pins
+
+
+def images_txt_pins() -> list:
+    return images_txt_inventory()[1]
+
+
+def inventory_failures(sections: dict, pins: list) -> list:
+    failures = []
+    for category in ("M", "W"):
+        matching = [section for section, label in sections.items() if label == category]
+        if len(matching) != 1:
+            failures.append(
+                f"{IMAGES_TXT.name}: expected exactly one [{category}] section header, "
+                f"found {len(matching)}"
+            )
+        for section in matching:
+            present = {pin[2] for pin in pins if pin[0] == section}
+            for name in sorted(TRACKED_COMPONENTS - present):
+                failures.append(f"{IMAGES_TXT.name}: {name} not pinned in [{category}] section")
+    return failures
+
+
+def report_failures(failures: list) -> int:
+    print("Air-gap kubeadm image version check FAILED:", file=sys.stderr)
+    for failure in failures:
+        print(f"  - {failure}", file=sys.stderr)
+    return 1
 
 
 def fix_images_txt(expected: dict) -> None:
@@ -176,6 +207,11 @@ def main() -> int:
         "--fix", action="store_true", help="rewrite images.txt pins from kubeadm and the registry"
     )
     args = parser.parse_args()
+    sections, pins = images_txt_inventory()
+    failures = inventory_failures(sections, pins)
+    if failures:
+        return report_failures(failures)
+
     version = target_kubernetes_version()
     print(f"target Kubernetes version (kindest/node): v{version}")
 
@@ -200,15 +236,7 @@ def main() -> int:
         print(f"rewrote {IMAGES_TXT.name} k8s component pins for kubeadm v{version}")
         return 0
 
-    pins = images_txt_pins()
     failures = []
-    for section in sorted({pin[0] for pin in pins}):
-        present = {pin[2] for pin in pins if pin[0] == section}
-        for dep_name in sorted(TRACKED_COMPONENTS - present):
-            failures.append(f"{dep_name}: not pinned in section {section} of {IMAGES_TXT.name}")
-    if not pins:
-        failures.append(f"no tracked component pins found in {IMAGES_TXT.name}")
-
     digests = {}
     for _, number, dep_name, tag, digest in pins:
         expected_tag = expected[dep_name]
@@ -227,10 +255,7 @@ def main() -> int:
             )
 
     if failures:
-        print("Air-gap kubeadm image version check FAILED:", file=sys.stderr)
-        for failure in failures:
-            print(f"  - {failure}", file=sys.stderr)
-        return 1
+        return report_failures(failures)
 
     print(
         f"Air-gap kubeadm image version check OK "
