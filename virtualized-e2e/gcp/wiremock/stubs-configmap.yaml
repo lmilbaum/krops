@@ -28,7 +28,7 @@ data:
     {
       "request": {
         "method": "POST",
-        "url": "/v1/token"
+        "urlPath": "/v1/token"
       },
       "response": {
         "status": 200,
