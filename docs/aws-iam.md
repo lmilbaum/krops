@@ -256,8 +256,15 @@ If a credential is suspected compromised, contain it immediately, then assess im
    ```sh
    aws iam update-access-key --user-name capi-demo --access-key-id <ACCESS_KEY_ID> --status Inactive
    ```
-2. Issue a new key, re-encrypt both SOPS secrets, and merge to main so Flux converges, following [Setting / rotating AWS credentials](./secrets.md#setting-rotating-aws-credentials).
-3. Delete the old key once the new one is live.
+2. Issue and validate a replacement key for the intended account and principal.
+   Update the gitignored `.env` and re-encrypt both CAPA and management ACK
+   SOPS secrets, following [Setting / rotating AWS credentials](./secrets.md#setting-rotating-aws-credentials).
+   Merge to `main` so Flux can reconcile; a merged manifest alone does not
+   establish that controllers have adopted the replacement.
+3. Verify Flux reconciliation and successful AWS operations from CAPA and all
+   management ACK controllers (S3, RDS, IAM), plus replacement adoption by any
+   running bootstrap process. Keep the compromised key disabled throughout
+   recovery, then delete it once those checks pass.
 
 **(b) `krops-ci-e2e` OIDC role** (normally covers itself; see [CI access](#ci-access-github-actions-oidc-and-the-krops-ci-e2e-role)):
 
