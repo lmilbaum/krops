@@ -111,7 +111,12 @@ resources. There is no app source code here, only declarative infrastructure.
   `images.txt` with the identical tag and digest, guarding against partial
   air-gap updates (issue #228); the CI-only
   `airgap/tests/test-airgap-kubeadm-images.py` checks the k8s component pins in
-  `images.txt` against real `kubeadm config images list` (`--fix` regenerates them).
+  `images.txt` against real `kubeadm config images list`. Both management [M]
+  and workload [W] sections must contain all seven components before any
+  download or write; `--fix` corrects existing tags and digests only after
+  completeness passes. The offline
+  `airgap/tests/test-airgap-kubeadm-images-regressions.py` runs in
+  `mise run validate` and CI; the live kubeadm gate remains CI-only.
   `airgap/tests/test-airgap-image-existence.py` confirms every `images.txt` digest is pullable
   (live registry calls); it runs only in the path-filtered `airgap-image-existence` workflow, not
   in `mise run validate`. `scripts/` builds,
