@@ -60,7 +60,7 @@ The Flux registration in `flux-ks.yaml` follows the existing entries:
 in Git, and a `healthChecks` entry naming one CRD the provider installs so
 Flux waits for it.
 
-Contract note: this repo pins CAPI core v1.14.0, which speaks the v1beta2
+Contract note: this repo pins CAPI core v1.14.2, which speaks the v1beta2
 contract and still accepts v1beta1-contract providers until the v1beta1
 removal (tentatively CAPI v1.16, April 2027). Prefer providers that already
 speak v1beta2.
@@ -70,7 +70,7 @@ speak v1beta2.
 CAPA is the provider this repo already runs; use it as the template:
 
 - `mgmt/aws/capi-providers/capa-system/providers.yaml` declares
-  `InfrastructureProvider aws` v2.13.0 with `configSecret: aws-credentials`
+  `InfrastructureProvider aws` v2.13.1 with `configSecret: aws-credentials`
   and the EKS feature gates
   (`EKS=true,EKSEnableIAM=true,EKSAllowAddRoles=true,MachinePool=true`).
 - `aws-credentials.sops.yaml` carries `AWS_B64ENCODED_CREDENTIALS`, produced
@@ -142,13 +142,13 @@ PXE-boot a bare-metal management machine. See the architecture diagram in
      name: talos
      namespace: cabpt-system
    spec:
-     version: "v0.7.6"
+     version: "v0.9.0"
      fetchConfig:
        url: "https://github.com/sidero-community/cluster-api-bootstrap-provider-talos/releases"
    ```
 
    The control plane provider is the same shape
-   (`cacppt-system/provider.yaml`: ControlPlaneProvider `talos` v0.6.4).
+   (`cacppt-system/provider.yaml`: ControlPlaneProvider `talos` v0.9.0).
 2. Set `fetchConfig.url` explicitly to the
    [sidero-community](https://github.com/sidero-community) releases: the CAPI
    operator's embedded clusterctl defaults resolve `talos` to the archived

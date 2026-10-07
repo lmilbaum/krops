@@ -181,8 +181,8 @@ create.
 The `azure` environment mirrors `aws`: a disposable kind cluster bootstraps
 Flux, CAPZ v1.27.0 provisions an AKS management cluster (`swedencentral-management`),
 the pivot moves the management objects into it, and each AKS workload cluster
-runs its own Azure Service Operator (ASO 2.19.0) reconciling Azure resources from
-`workload/azure-base/`.
+runs its own Azure Service Operator (workload ASO 2.21.1) reconciling Azure
+resources from `workload/azure-base/`.
 
 No Azure secret exists at rest: the management cluster authenticates CAPZ and
 the bundled ASO with workload identity against the `krops-capz`
@@ -242,7 +242,7 @@ flowchart TD
         FIC[Federated Identity Credential: workload-identity]
         ROLE[Role Assignment: Contributor on data RG]
         RG[(Resource Group: krops-swedencentral-workload-data)]
-        VNET[(VNet: vnet-swedencentral-workload<br/>subnet: snet-postgres<br/>private DNS zone)]
+        VNET[(VNet: krops-swedencentral-workload-vnet<br/>subnet: postgres<br/>private DNS zone)]
         SA[(Storage Account: blob container 'data')]
         PSQL[(PostgreSQL Flexible Server<br/>private access, Entra-only auth)]
     end
@@ -258,7 +258,7 @@ flowchart TD
     subgraph wl["Workload cluster swedencentral-workload"]
         WF["Flux (sync: workload/swedencentral-01)"]
         WCM["cert-manager Ks"]
-        WASO["aso Ks<br/>ASO 2.19.0 (Workload Identity)"]
+        WASO["aso Ks<br/>workload ASO 2.21.1 (Workload Identity)"]
         WNET["networking Ks<br/>dependsOn: aso"]
         WSTOR["storage Ks<br/>dependsOn: aso"]
         WPSQL["postgres Ks<br/>dependsOn: aso, networking"]
@@ -287,7 +287,7 @@ cert-manager ▶ capi-operator ▶ capi-system ▶ capz-system (bundled ASO)
 ### Reconciliation order (Azure workload cluster)
 
 ```
-cert-manager ▶ aso (ASO 2.19.0 via Workload Identity) ▶ networking (VNet + delegated subnet + DNS)
+cert-manager ▶ aso (workload ASO 2.21.1 via Workload Identity) ▶ networking (VNet + delegated subnet + DNS)
                                                       ├▶ storage (Storage Account + blob container)
                                                       └▶ postgres (dependsOn: aso, networking)
 ```
@@ -297,7 +297,7 @@ cert-manager ▶ aso (ASO 2.19.0 via Workload Identity) ▶ networking (VNet + d
 The `gcp` environment mirrors `azure`: a disposable kind cluster bootstraps
 Flux, CAPG v1.13.1 provisions a GKE management cluster
 (`europe-north1-management`), the pivot moves the management objects into
-it, and the GKE workload cluster runs its own Config Connector (KCC 1.156.0)
+it, and the GKE workload cluster runs its own Config Connector (KCC 1.158.0)
 reconciling GCP resources from `workload/gcp-base/`.
 
 No GCP secret exists at rest. CAPG and the management-side Config Connector
@@ -342,7 +342,7 @@ flowchart TD
         CAPIS[capi-system]
         CAPGS["capg-system (CAPG v1.13.1)<br/>WIF credential Secret, secret-free"]
         CAAPH[caaph-system]
-        KCCO["kcc-operator (1.156.0, pinned bundle)"]
+        KCCO["kcc-operator (1.158.0, pinned bundle)"]
         KCC["kcc (ConfigConnector in cnrm-system)<br/>WIF credential Secret"]
         KCCI["kcc-identity (KCC-managed)<br/>krops pool + mgmt provider + GSA grants"]
         EUNC["europe-north1 cluster defs<br/>europe-north1-management (self-hosted)<br/>europe-north1-workload"]
@@ -373,7 +373,7 @@ flowchart TD
 
     subgraph wl["Workload cluster europe-north1-workload (GKE)"]
         WF["Flux (sync: workload/europe-north1-01)"]
-        WKCCO["kcc-operator Ks<br/>KCC 1.156.0 operator (wait: true)"]
+        WKCCO["kcc-operator Ks<br/>KCC 1.158.0 operator (wait: true)"]
         WKCC["kcc Ks<br/>cluster-mode ConfigConnector<br/>GKE Workload Identity via krops-kcc"]
         WNET["networking Ks<br/>PSA range + peering (dependsOn: kcc)"]
         WSTOR["storage Ks<br/>bucket (dependsOn: kcc)"]
@@ -489,13 +489,14 @@ podinfo (HelmRelease reconciled by local workload Flux from OCI artifact)
 
 The `local-talos` environment targets physical bare metal: a disposable kind
 cluster installs CAPI with the Tinkerbell infrastructure provider (CAPT pinned
-to fork v0.7.1) and Talos bootstrap/control-plane providers (CABPT v0.8.2,
-CACPPT v0.7.1). The controllers match a committed Tinkerbell Hardware object
+to fork v0.7.1) and Talos bootstrap/control-plane providers (CABPT v0.9.0,
+CACPPT v0.9.0). The controllers match a committed Tinkerbell Hardware object
 (`talos-mgmt-01`), PXE-boot the target machine, and bring up an immutable
-single-node control plane. The installer image is declared on the
-`TalosConfig` through `spec.imageFactory` (resolved by CABPT v0.8.x against
-the Image Factory API); the committed definition declares no block, so no
-installer-image override is rendered.
+single-node control plane. The installer image is set with the
+`hardware.tinkerbell.org/installer-image` annotation on the Hardware CR,
+mirrored into `status.installerImage` by the CAPT fork and injected by CABPT;
+the committed definition pins no installer image, so without the annotation
+installs use the default Image Factory schematic.
 
 Scope fence: `local-talos` is management-only. It owns no workload clusters and
 deploys no CAPI addons (Talos ships its own internal CNI). Teardown deletes the
@@ -528,8 +529,8 @@ flowchart TD
         CO[capi-operator]
         CAPIS[capi-system]
         CAPT["capt-system (Tinkerbell CAPT v0.7.1 fork)"]
-        CABPT["cabpt-system (Talos bootstrap v0.8.2)"]
-        CACPPT["cacppt-system (Talos control plane v0.7.1)"]
+        CABPT["cabpt-system (Talos bootstrap v0.9.0)"]
+        CACPPT["cacppt-system (Talos control plane v0.9.0)"]
         TALOSMGMT["clusters/management<br/>talos-mgmt-01 (explicit controlPlaneRef)"]
 
         FS --> CM --> CO --> CAPIS

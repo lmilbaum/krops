@@ -159,7 +159,7 @@
   <!-- resource boxes -->
   <rect x="584" y="690" width="412" height="60" rx="8" fill="#1B2C23" stroke="#284637" stroke-width="1.2"/>
   <text x="604" y="715" font-family="DejaVu Sans Mono" font-size="15" font-weight="bold" fill="#E8A868">Virtual Network &amp; Private DNS</text>
-  <text x="604" y="736" font-family="DejaVu Sans" font-size="13.5" fill="#D4E2DA">vnet-swedencentral-workload &#183; delegated subnet</text>
+  <text x="604" y="736" font-family="DejaVu Sans" font-size="13.5" fill="#D4E2DA">krops-swedencentral-workload-vnet &#183; postgres subnet</text>
 
   <rect x="584" y="760" width="412" height="60" rx="8" fill="#1B2C23" stroke="#284637" stroke-width="1.2"/>
   <text x="604" y="785" font-family="DejaVu Sans Mono" font-size="15" font-weight="bold" fill="#E8A868">Storage Account &amp; Blob</text>
@@ -167,7 +167,7 @@
 
   <rect x="584" y="830" width="412" height="60" rx="8" fill="#1B2C23" stroke="#284637" stroke-width="1.2"/>
   <text x="604" y="855" font-family="DejaVu Sans Mono" font-size="15" font-weight="bold" fill="#E8A868">PostgreSQL Flexible Server</text>
-  <text x="604" y="876" font-family="DejaVu Sans" font-size="13.5" fill="#D4E2DA">psql-swedencentral-workload &#183; private VNet access</text>
+  <text x="604" y="876" font-family="DejaVu Sans" font-size="13.5" fill="#D4E2DA">krops-swedencentral-workload-db &#183; private VNet</text>
 
   <!-- azure logo glyph -->
   <g transform="translate(930, 915)">

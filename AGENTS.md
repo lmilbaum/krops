@@ -36,19 +36,20 @@ resources. There is no app source code here, only declarative infrastructure.
   the shrinedogg fork release v0.7.1 (upstream main plus the
   installer-image annotation mirror, PR tinkerbell#604; see
   `capi-providers/capt-system/provider.yaml`); re-point at upstream once a
-  release there includes it. The installer image is declared on the
-  TalosConfig through `spec.imageFactory` (CABPT v0.8.x resolves it against
-  the Image Factory API); the committed definition declares no block, so no
-  override is rendered, and the CAPT fork's annotation mirror is no longer
-  consumed by CABPT v0.8.x. The `spec.imageFactory` path is not yet
-  validated live: the #105 hardware acceptance run (done, closed) predates
-  the CABPT bump to v0.8.2, and the PXE/Tinkerbell-Workflow provisioning
-  transport still needs a run (issue #225). Fork retirement is tracked in
+  release there includes it. The installer image is deliberately NOT pinned
+  in the cluster definition: annotate the Tinkerbell Hardware CR with
+  `hardware.tinkerbell.org/installer-image` and the pinned CAPT fork (v0.7.1)
+  mirrors it into the InfraMachine's `status.installerImage` (#156), which
+  CABPT (>= v0.7.6, now v0.9.0) injects as `machine.install.image`; without
+  the annotation, installs use the default Image Factory schematic. That
+  annotation-mirror path was validated by the #105 hardware acceptance run
+  (done, closed, ISO boot); the only open item is the PXE/Tinkerbell-Workflow
+  provisioning transport run (issue #225). Fork retirement is tracked in
   issue #266, blocked on upstream PR
   tinkerbell/cluster-api-provider-tinkerbell#604. Scope fence:
   management-only; no `addons/` (Talos ships its own CNI, no
   HelmChartProxy consumers). The wiring landed in #169 and the docs in
-  #171; the remaining #105 item is the hardware acceptance run.
+  #171.
 - `mgmt/azure/`: the Azure management variant (issue #71). Same component
   layout as `mgmt/aws/` (`infrastructure/`, `capi-providers/`, `addons/`,
   `clusters/`), synced from GitHub. CAPZ v1.27.0 (`capi-providers/capz-system/`)

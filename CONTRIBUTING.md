@@ -19,7 +19,7 @@ Work is organized into numbered milestones that build on each other.
 |---|---|---|
 | 1-renovate-foundations | closed | Renovate as the hosted GitHub App, the central version catalog retired, a shared integration-test harness (`tests/renovate_harness.py`) |
 | 2-rust-bootstrap | closed | `krops-bootstrap`, the Rust CLI covering bootstrap, pivot, and teardown; `bootstrap.toml` as the repository-owned configuration; the toolbox container image |
-| 3-environments | open | `local-talos` wiring and docs are on `main`; the hardware acceptance run (#105) is pending. Azure via ASO (#71) and GCP via Config Connector (#72) are unstarted |
+| 3-environments | open | `local-talos` is complete (hardware acceptance run done, #105 closed; the PXE/Tinkerbell-Workflow transport run #225 is the only open item). Azure (#71) and GCP (#72) are wired end to end on main; live acceptance runs and automated teardown remain |
 | 4-hardening | open | Air-gap supply chain (#80): digest pins everywhere, signed SBOMs, offline verification, transactional updates. The build, signing, and publication model needs a design decision first (#138) |
 
 Two facts follow from that table and shape what a contributor can rely on:
@@ -38,8 +38,8 @@ the best places to start if you are new to the repository.
 |---|---|---|
 | Documentation structure | #151, #149, #150, #152 | README, AGENTS.md, and `docs/` overlap and drift; external links are unchecked; `bootstrap.toml` should be the single configuration reference; "environment" is used for two different things |
 | Developer experience | #139, #134, #135, #153, #159 | A stale host toolchain broke a PR once; validation tools should come from mise in CI too; merged branches are not auto-deleted; the commit policy for PRs is under evaluation |
-| Python quality | #160, #161, #162, #164 | The test scripts under `tests/` and `airgap/tests/` have no linter or test runner; Renovate parser resilience and the Dependency Dashboard are unverified |
-| Air-gap coverage gaps | #165, #170, #173, #142, #136, #137 | The digest gate misses new source types; Renovate cannot pin digests in `airgap/scripts/*.sh`; Cluster topology versions are not covered |
+| Python quality | #160, #161, #162, #164 | A ruff gate exists (`mise run validate` lints the whole repo for unused imports and `subprocess.run` checks); a pytest runner is not yet applied to `tests/` and `airgap/tests/`; Renovate parser resilience and the Dependency Dashboard are unverified |
+| Air-gap coverage gaps | #170, #136, #137 | The digest gate misses new source types; Renovate cannot pin digests in `airgap/scripts/*.sh`. (#165, #173, and #142 from this theme have landed.) |
 
 Labels mark the entry points:
 
@@ -84,7 +84,7 @@ for development and validation.
 git clone https://github.com/polarsquad/krops.git
 cd krops
 mise trust
-mise install                 # kubectl, kind, flux, sops, age, kustomize, ...
+mise install                 # kubectl, kind, flux2, sops, age, helm, clusterctl, ...
 docker build -f bootstrap-rs/Dockerfile -t krops-toolbox:dev .
 export TOOLBOX_IMAGE=krops-toolbox:dev
 mise run validate            # must pass on a clean checkout before you change anything
@@ -92,8 +92,8 @@ mise run validate            # must pass on a clean checkout before you change a
 
 Requirements:
 
-- Mise 2026.8.10 or newer. Older versions fail on the pinned tool
-  definitions.
+- Mise 2026.10.3 or newer. Older versions fail on the pinned tool
+  definitions (see `min_version` in `mise.toml`).
 - Docker, or Podman 5.5+. kind creates clusters through the mounted engine
   socket.
 - Rust via rustup only when building `bootstrap-rs/` outside the image; the
@@ -192,15 +192,19 @@ Run the checks that match what you touched. CI runs all of them.
 - Fill in the PR description with the problem, the change, and the
   verification you ran, including command output where it proves a claim.
 - Link the issue. Use `Closes #N` only when the PR completes the whole issue.
-- Expect three automated checks:
+- Expect these automated checks:
   - `validate`: air-gap digest pins, kustomize builds, Renovate coverage,
-    `bootstrap.toml` cross-check, YAML lint.
+    `bootstrap.toml` cross-check, YAML lint, and a Python lint gate.
   - `bootstrap-rs`: fmt, clippy, build, test for the Rust CLI.
+  - `docs`: assembles the MkDocs site and fails on broken links or missing
+    nav pages.
   - `konflate`: the PR rendered as a Flux diff (blast radius, image changes,
     render failures), posted as a PR comment and required for merge. This
     job is skipped for pull requests from forks because it would run
     untrusted sources through konflate. A maintainer may recreate your
     branch inside the repository to obtain the render before merging.
+  - `airgap-image-existence`: for PRs touching `airgap/`, confirms the
+    digest-pinned images still resolve.
 - Review is done against the rendered diff and the evidence in the
   description, not against intent. If a reviewer asks for evidence, add it
   to the PR rather than replying with a description.
@@ -218,18 +222,19 @@ Run the checks that match what you touched. CI runs all of them.
 - `local-talos` needs a reachable Tinkerbell stack and a machine you are
   willing to PXE-boot. Teardown releases the Hardware resource and never
   wipes the disk.
-- The nightly `air-gapped` workflow runs on `main` only. Air-gap changes are
+- The nightly `air-gapped` workflow runs on `main` (GitHub schedules fire on
+  the default branch only) or by manual dispatch. Air-gap changes are
   verified locally with `airgap/scripts/offline-run.sh`; see
   `docs/airgap.md` for the checklist.
 
 ## Reporting problems
 
 - Bugs and proposals: open a GitHub issue. State the environment
-  (`aws`, `local-host`, `local-talos`), the commit on `main`, the command,
-  and the observed output.
+  (`aws`, `azure`, `gcp`, `local-host`, `local-talos`), the commit on
+  `main`, the command, and the observed output.
 - Security-sensitive findings (a leaked credential, a bypass of the SOPS or
-  signing chain): do not open a public issue. Contact a maintainer listed on
-  the repository directly.
+  signing chain): do not open a public issue. Report it privately through
+  the repository security advisory form (`SECURITY.md`).
 
 ## License
 

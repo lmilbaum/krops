@@ -9,7 +9,7 @@ proven by the Phase 0 spike; the full evidence is
 Both controller families honor `AWS_ENDPOINT_URL`, so no network-layer
 interception (HTTPS proxy, CoreDNS rewrite of `*.amazonaws.com`) is needed:
 
-- CAPA v2.13.0: the global `AWS_ENDPOINT_URL` covers every service the
+- CAPA v2.13.x: the global `AWS_ENDPOINT_URL` covers every service the
   reconcile path calls. The patch also sets the per-service variants
   (`AWS_ENDPOINT_URL_EC2`, `_ELB`, `_STS`, `_IAM`, `_SSM`,
   `_SECRETSMANAGER`, `_EKS`) so Phase 2 can split recordings per service.

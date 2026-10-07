@@ -70,7 +70,7 @@ same pins. `airgap/tests/test-airgap-ownership.py` checks that invariant in
 file but not the others fails the build instead of shipping a bundle with
 conflicting versions or digests.
 
-Renovate 44.50.1 has no native zarf manager, so the air-gap surfaces are
+Renovate has no native zarf manager, so the air-gap surfaces are
 managed by the shared custom-regex managers in `renovate.json5` rather than a
 native manager. That is an accepted deviation from issue #228's "discovered
 by a native Renovate manager" acceptance criterion; the ownership invariant
@@ -138,7 +138,7 @@ The verification linchpin is the agent's **image rewrite** plus a Ready
 | `archives/kindest_node_v1.36.4_mgmt.tar` | mgmt kind node (host daemon) |
 | `archives/kindest_node_v1.36.4.tar` | CAPD workload and management nodes (host daemon) |
 | `archives/kindest_haproxy_*.tar` | CAPD load balancer |
-| `archives/docker.io_library_registry_2.tar` | krops-registry container |
+| `archives/docker.io_library_registry_2.8.3.tar` | krops-registry container |
 | `archives/workload-pod-images.tar` | flux controllers + podinfo for `preLoadImages` |
 | `archives/charts/{flux-operator,podinfo}-*.tgz` | OCI charts seeded into krops-registry |
 | `config-artifact/` | trimmed GitOps tree, re-pushed as `krops:latest` |
@@ -164,32 +164,22 @@ signs the completed archive so its checksum manifest covers those SBOMs and
 all other package contents. CI sets `ZARF_KEYLESS_SIGNING=1` and grants OIDC
 only to the build job.
 
-The `air-gapped` GitHub Actions workflow runs only on upstream `main`, nightly
-or by manual dispatch. It builds the ARM64 bundle, then starts two deployment
-jobs in parallel: one observes public traffic without blocking it, while the
-other blocks new external connections from the kind network. Both capture
-public traffic and fail if any public packet is observed or attempted. The
+The `air-gapped` GitHub Actions workflow runs nightly (cron `17 2 * * *`,
+default branch) or by manual dispatch, with no branch or fork guard, so a
+change can be verified before merge. It builds the ARM64 bundle, then runs a
+single `isolated-deploy` job that blocks new external connections from the
+kind network and fails if any public packet is observed or attempted, plus a
+`report-status` job that files or closes the nightly failure issue. The
 workflow retains the bundle and verification evidence as one-day artifacts.
-
-Running both deployment jobs is a temporary evaluation, not the intended
-long-term workflow shape. Their results and timings provide comparable samples
-from the same bundle so maintainers can determine which method detects offline
-violations more accurately and whether either has a meaningful performance
-cost. After enough nightly and manual runs have been assessed, the less
-effective job will be removed.
 
 The nightly schedule starts at 02:17 UTC rather than at the top of the hour to
 reduce GitHub Actions queue contention. Build and deployment remain separate
 jobs so CI verifies that the uploaded transfer bundle can be downloaded and
-used on clean runners. Both deployment jobs depend only on the build job, so
-they run concurrently to make their timing comparison fair and avoid doubling
-elapsed validation time. The bundle upload uses compression level 0 because its
-largest contents are already-compressed container layers and Zstandard
-archives. CI also
+used on clean runners; the deployment job depends only on the build job. The
+bundle upload uses compression level 0 because its largest contents are
+already-compressed container layers and Zstandard archives. CI also
 deliberately avoids caching container images: pulling them during every run
 verifies that the declared air-gap inventory remains available and complete.
-The workflow has no fork or branch guard, so it can be dispatched on any
-branch of any fork, which is how a change is verified before merge.
 
 Gap (deploy): from `airgap/`:
 

@@ -63,15 +63,16 @@
     <circle cx="290" cy="274" r="6.5"/>
     <circle cx="290" cy="274" r="2.2"/>
   </g>
-  <text x="308" y="260" font-family="DejaVu Sans" font-size="17" font-weight="bold" fill="#FFFFFF">CAPI / CAPG</text>
-  <text x="308" y="283" font-family="DejaVu Sans" font-size="14" fill="#D4E2DA">v1.13.1 (GKE + MachinePool)</text>
+  <text x="308" y="250" font-family="DejaVu Sans" font-size="15" font-weight="bold" fill="#FFFFFF">CAPI / CAPG</text>
+  <text x="308" y="272" font-family="DejaVu Sans" font-size="13.5" fill="#D4E2DA">CAPI v1.14.2</text>
+  <text x="308" y="292" font-family="DejaVu Sans" font-size="13.5" fill="#D4E2DA">CAPG v1.13.1</text>
 
   <!-- infra lifecycle sub-panel -->
   <rect x="88" y="336" width="392" height="136" rx="10" fill="#5CE0B4" fill-opacity="0.12" stroke="#5CE0B4" stroke-opacity="0.5" stroke-width="1.2"/>
   <text x="284" y="360" text-anchor="middle" font-family="DejaVu Sans" font-size="16" font-weight="bold" fill="#5CE0B4">Manages infrastructure &amp; identity</text>
   <text x="106" y="386" font-family="DejaVu Sans" font-size="14" fill="#D4E2DA">&#8226; <tspan font-weight="bold">GKE clusters:</tspan> GCPManaged* (management + workload)</text>
   <text x="106" y="410" font-family="DejaVu Sans" font-size="14" fill="#D4E2DA">&#8226; <tspan font-weight="bold">Identity:</tspan> krops WIF pool, mgmt provider, krops-* GSAs</text>
-  <text x="106" y="434" font-family="DejaVu Sans" font-size="14" fill="#D4E2DA">&#8226; <tspan font-weight="bold">KCC 1.156.0:</tspan> pinned bundle, cluster-mode in cnrm-system</text>
+  <text x="106" y="434" font-family="DejaVu Sans" font-size="14" fill="#D4E2DA">&#8226; <tspan font-weight="bold">KCC 1.158.0:</tspan> pinned bundle, cluster-mode in cnrm-system</text>
   <text x="106" y="458" font-family="DejaVu Sans" font-size="14" fill="#859D91">&#8226; <tspan font-family="DejaVu Sans Mono">external_account</tspan> Secrets (plain, secret-free)</text>
 
   <!-- ===== git repository ===== -->
@@ -163,7 +164,7 @@
 
   <rect x="584" y="760" width="412" height="60" rx="8" fill="#1B2C23" stroke="#284637" stroke-width="1.2"/>
   <text x="604" y="785" font-family="DejaVu Sans Mono" font-size="15" font-weight="bold" fill="#E8A868">Storage Bucket</text>
-  <text x="604" y="806" font-family="DejaVu Sans" font-size="13.5" fill="#D4E2DA">krops-&lt;number&gt;-europe-north1-workload-data &#183; versioned, PAP</text>
+  <text x="604" y="806" font-family="DejaVu Sans" font-size="13.5" fill="#D4E2DA">krops-&lt;number&gt;-europe-north1-workload-data &#183; PAP</text>
 
   <rect x="584" y="830" width="412" height="60" rx="8" fill="#1B2C23" stroke="#284637" stroke-width="1.2"/>
   <text x="604" y="855" font-family="DejaVu Sans Mono" font-size="15" font-weight="bold" fill="#E8A868">Cloud SQL PostgreSQL 17</text>

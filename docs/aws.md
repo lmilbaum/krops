@@ -1,7 +1,7 @@
 # AWS environment
 
 The `aws` environment is the reference: a disposable kind bootstrap cluster
-runs Flux, CAPA v2.13.0 provisions self-managed EKS clusters, the pivot moves
+runs Flux, CAPA v2.13.1 provisions self-managed EKS clusters, the pivot moves
 the management objects into the `eu-north-1-management` cluster, and the
 management cluster runs the ACK operators (S3, RDS, IAM) reconciling the
 per-workload-cluster AWS resources from
@@ -16,9 +16,10 @@ per-workload-cluster AWS resources from
 | `eu-north-1` | `eu-north-1-management` (the self-managed management cluster, provisioned by the pivot) and `eu-north-1-workload` |
 | `eu-west-1` | `eu-west-1-workload` |
 
-Every cluster is an EKS control plane with an x86 plus an ARM (Graviton2)
-`AWSManagedMachinePool` at the cheapest
-offered 2 vCPU / 4 GiB shape for the region. The management cluster lives in
+Every cluster is an EKS control plane. Each workload cluster runs one x86
+plus one ARM (Graviton2) `AWSManagedMachinePool` at the cheapest offered
+2 vCPU / 4 GiB shape for the region; the management cluster runs a single ARM
+(Graviton2, `t4g.medium`) pool. The management cluster lives in
 `eu-north-1` and, after the pivot, reconciles its own Cluster objects.
 
 ## Prerequisites

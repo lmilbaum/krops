@@ -6,7 +6,9 @@
 
 The toolbox image (`ghcr.io/polarsquad/krops-toolbox`) carries
 `krops-bootstrap` plus every tool used by bootstrap, pivot, and teardown. It
-intentionally omits development-only Go and Python toolchains and the Zarf CLI.
+intentionally omits the development-only Go toolchain and the Zarf CLI; a
+pinned Python and uv are present only as a runtime backend for azure-cli and
+gcloud.
 The host needs the repository checkout and a running Docker engine or Podman
 5.5+.
 
@@ -434,34 +436,24 @@ needs:
      IP; its name must match the `hardwareName` in
      `mgmt/local-talos/clusters/management/cluster.yaml` (`talos-mgmt-01`
      as checked in).
-  3. Customize the installer image through `spec.imageFactory` on the
-     TalosConfig (declared under `controlPlaneConfig` in
-     `mgmt/local-talos/clusters/management/cluster.yaml`): the block mirrors
-     the Image Factory schematic (official system extensions, extra kernel
-     args, an SBC overlay, and the bootloader). CABPT v0.8.x resolves the
-     block against the Image Factory API and renders
-     `machine.install.image`; a bare minor `talosVersion` (the committed
-     `v1.14`) resolves to the newest non-prerelease patch the Factory serves.
-     The committed definition declares no `imageFactory` block, so CABPT
-     renders no installer-image override. The earlier mechanism, the
-     `hardware.tinkerbell.org/installer-image` Hardware annotation mirrored
-     into `status.installerImage` by the CAPT fork, is no longer read by
-     CABPT v0.8.x.
+  3. Customize the installer image with the
+     `hardware.tinkerbell.org/installer-image` annotation on the Tinkerbell
+     `Hardware` CR: the pinned CAPT fork (v0.7.1) mirrors it into the
+     InfraMachine's `status.installerImage` (#156), which CABPT (>= v0.7.6,
+     now v0.9.0) injects as `machine.install.image`. The cluster definition
+     itself deliberately pins no installer image, so without the annotation
+     installs use the default Image Factory schematic and CABPT treats the
+     absent field as "no override".
   4. Set the machine to PXE-boot from the network Smee serves.
 
-     **Installer image handoff status:** the CABPT pin moved to v0.8.2
-     (Renovate #295), which deleted the `status.installerImage` lookup and
-     moved the installer image to `spec.imageFactory`. The CAPT fork v0.7.1
-     still mirrors the Hardware annotation, but nothing consumes it on the
-     current pins, so the annotation path is a no-op. The `spec.imageFactory`
-     path has not been exercised live: the #105 hardware acceptance run
-     predates the CABPT bump, and the documented PXE/Tinkerbell-Workflow
-     path still needs a run (issue #225). Until that run, verify the image
-     the machine actually receives and do not treat the installer image as
-     Git-pinned. Fork retirement is tracked in issue #266, blocked on
-     upstream PR tinkerbell/cluster-api-provider-tinkerbell#604; with the
-     installer-image mirror no longer consumed, that PR is the fork's only
-     remaining differentiator.
+     **Installer image handoff status:** the annotation-mirror path above is
+     the mechanism in use and was validated by the #105 hardware acceptance
+     run (done, closed, ISO boot); the only open item is the PXE/Tinkerbell-Workflow
+     provisioning transport run (issue #225). Verify the image the machine
+     actually receives until that run. Fork retirement is tracked in issue
+     #266, blocked on upstream PR
+     tinkerbell/cluster-api-provider-tinkerbell#604, which still carries the
+     installer-image mirror the fork adds.
 - Two site-specific values in
   `mgmt/local-talos/clusters/management/cluster.yaml` before the first run:
   `spec.controlPlaneEndpoint.host` (the machine's stable IP) and the
@@ -906,8 +898,8 @@ sweep; the environment owns no cloud resources.
 For `aws`, teardown suspends Flux, deletes every workload CAPI Cluster while
 leaving the management Cluster object alone, and waits before touching the
 controller host. It then runs a best-effort AWS sweep for both workload
-regions and the self-managed management cluster. The sweep removes pod
-identity associations, nodegroups, EKS control planes, orphaned RDS instances,
+regions and the self-managed management cluster. The sweep removes nodegroups,
+EKS control planes, orphaned RDS instances,
 CAPA-tagged VPC resources in dependency order, versioned S3 buckets, CAPA and
 ACK IAM roles, the `krops-reader` user, and the `clusterawsadm`
 CloudFormation stack. It removes CAPI providers and bootstrap Helm releases

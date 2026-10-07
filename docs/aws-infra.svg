@@ -197,7 +197,7 @@
   <circle cx="1140" cy="208" r="15" fill="#5CE0B4"/>
   <text x="1140" y="214" text-anchor="middle" font-family="DejaVu Sans" font-size="15" font-weight="bold" fill="#0C120F">1</text>
   <text x="1168" y="204" font-family="DejaVu Sans" font-size="17" fill="#D4E2DA">Management cluster Flux syncs</text>
-  <text x="1168" y="230" font-family="DejaVu Sans Mono" font-size="16" fill="#5CE0B4">mgmt/<tspan font-family="DejaVu Sans" font-size="17" fill="#D4E2DA">, provisions EKS clusters,</tspan></text>
+  <text x="1168" y="230" font-family="DejaVu Sans Mono" font-size="16" fill="#5CE0B4">mgmt/aws/<tspan font-family="DejaVu Sans" font-size="17" fill="#D4E2DA">, provisions EKS clusters,</tspan></text>
   <text x="1168" y="256" font-family="DejaVu Sans" font-size="17" fill="#D4E2DA">and installs Flux on each workload</text>
   <text x="1168" y="282" font-family="DejaVu Sans" font-size="17" fill="#D4E2DA">cluster via <tspan font-family="DejaVu Sans Mono" font-size="16" fill="#5CE0B4">flux-apps</tspan>.</text>
   <g transform="translate(1140,334) scale(0.85)">

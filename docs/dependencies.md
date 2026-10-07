@@ -13,10 +13,12 @@ proposed updates appear in the Renovate dependency dashboard issue.
 
 Renovate discovers and updates versions in:
 
-- `mise.toml`, `mise.aws.toml`, `mise.local-host.toml`, and
-  `mise.local-talos.toml`: tool pins and the Zarf CLI pin. Explicit per-tool
-  custom managers replace the native mise manager so each pin resolves against
-  the intended upstream project.
+- `mise.toml`, `mise.aws.toml`, `mise.azure.toml`, `mise.gcp.toml`,
+  `mise.local-host.toml`, and `mise.local-talos.toml`: tool pins and the Zarf
+  CLI pin, plus the azure-cli pipx pin (`mise.azure.toml`) and the gcloud pin
+  (`mise.gcp.toml`, resolved via the gcr.io/google-cloud-cli docker
+  datasource). Explicit per-tool custom managers replace the native mise
+  manager so each pin resolves against the intended upstream project.
 - `pyproject.toml` and `uv.lock`: documentation site dependencies (mkdocs-material,
   pytest) through the native Python managers.
 - `bootstrap-rs/Cargo.toml` and `bootstrap-rs/Cargo.lock`: Rust crate
@@ -63,6 +65,9 @@ Renovate discovers and updates versions in:
 - `pivot.sh`: imperative cert-manager and CAPI Operator chart pins, retained
   and grouped with `bootstrap.toml` and the Git manifests until the native
   shell path retires.
+- `virtualized-e2e/**/*.yaml.tmpl`: annotated docker image pins in the
+  WireMock harness templates (issue #355), digest-pinned like the air-gap
+  inventory while retaining readable tags.
 
 Grouping rules keep GitHub Actions updates together (excluding workflow container
 images and runners), Flux updates together, CAPI updates together, imperative

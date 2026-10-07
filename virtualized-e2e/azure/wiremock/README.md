@@ -1,6 +1,6 @@
 # Azure arm: WireMock interception for ASO and CAPZ
 
-Second arm of the virtualized e2e harness (issue #355), after the AWS
+An arm of the virtualized e2e harness (issue #355), alongside the AWS
 reference arm. Mechanisms proven by the Phase 0 spike; the full evidence is
 [docs/wiremock-e2e-spike-findings-azure.md](../../../docs/wiremock-e2e-spike-findings-azure.md).
 

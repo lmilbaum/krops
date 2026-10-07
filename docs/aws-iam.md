@@ -150,7 +150,7 @@ explicit refs, for example
 ### Permission groupings
 
 Derived from the repo, not guesswork: the CAPA surface comes from the pinned
-`clusterawsadm` 2.13.0 `print-policy` output evaluated with krops' feature
+`clusterawsadm` 2.13.1 `print-policy` output evaluated with krops' feature
 gates (`EKS=true,EKSEnableIAM=true,EKSAllowAddRoles=true,MachinePool=true`),
 the sweep surface from `teardown.sh` / `bootstrap-rs/src/teardown.rs`, and
 the ACK surface from the prerequisites in [AWS environment](./aws.md).
