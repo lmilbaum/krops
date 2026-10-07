@@ -38,7 +38,7 @@ outside this repo, same as the CAPA permissions):
   used for tag-removal drift requires `s3:PutBucketTagging`, covered by
   `s3:PutBucket*`. `s3:UntagResource`/`s3:ListTagsForResource` are not needed: the ACK
   S3 controller only calls them for directory buckets, which krops does not
-  create
+  create.
 - **RDS**: `rds:Describe*` + `rds:ListTagsForResource` on `*`; instance
   management (`rds:CreateDBInstance`/`ModifyDBInstance`/`DeleteDBInstance`/
   `RebootDBInstance`/`StartDBInstance`/`StopDBInstance`,

@@ -36,6 +36,9 @@ NODE_IMAGE_SOURCE = REPO_ROOT / "mgmt/local-host/clusters/docker/cluster.yaml"
 MANAGEMENT_NODE_IMAGE_SOURCE = REPO_ROOT / "mgmt/local-host/clusters/management/cluster.yaml"
 IMAGES_TXT = REPO_ROOT / "airgap/images.txt"
 
+# Validate Docker-Content-Digest header format
+_DIGEST_RE = re.compile(r'^sha256:[0-9a-f]{64}$')
+
 # depName, as both Renovate (images.txt) and kubeadm's own image list spell it.
 TRACKED_COMPONENTS = {
     "registry.k8s.io/kube-apiserver",
@@ -133,13 +136,20 @@ MANIFEST_ACCEPT = ", ".join(
 
 
 def registry_digest(name: str, tag: str) -> str:
-    """The sha256 digest the registry serves for name:tag (index digest for multi-arch)."""
+    """The sha256 digest the registry serves for name:tag (index digest for multi-arch).
+
+    Prefers the Docker-Content-Digest header if present and valid; falls back to
+    computing the digest from the HTTP response body.
+    """
     host, _, repo = name.partition("/")
     request = urllib.request.Request(
         f"https://{host}/v2/{repo}/manifests/{tag}",
         headers={"Accept": MANIFEST_ACCEPT},
     )
     with urllib.request.urlopen(request, timeout=60) as response:
+        header = response.headers.get("Docker-Content-Digest", "")
+        if _DIGEST_RE.match(header):
+            return header
         return "sha256:" + hashlib.sha256(response.read()).hexdigest()
 
 
