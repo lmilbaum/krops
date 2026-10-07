@@ -6,7 +6,7 @@ safely in Git and Flux decrypts them at reconcile time.
 
 - **`.sops.yaml`** declares the age *public* key (safe to commit) and a rule
   that encrypts only `data`/`stringData` fields of any `*.sops.yaml` file under
-  `mgmt/aws/`.
+  `mgmt/aws/`, `mgmt/azure/`, or `mgmt/gcp/`.
 - The age *private* key lives in `age.agekey` (gitignored). The bootstrap
   loads it into the cluster as the `sops-age` secret in `flux-system`.
 
@@ -17,7 +17,7 @@ with `spec.decryption.provider: sops`):
 |---|---|---|
 | `mgmt/aws/capi-providers/capa-system/aws-credentials.sops.yaml` | `capa-system` | CAPA controller AWS credentials |
 | `mgmt/aws/infrastructure/ack-controllers/aws-credentials.sops.yaml` | `ack-controllers` | ACK S3/RDS/IAM controller AWS credentials (shared-credentials-file format) |
-| `mgmt/aws/addons/flux-apps/flux-pull-secret.sops.yaml` | `flux-apps` | GitHub PAT pull secret (basic auth), delivered to each workload cluster via ClusterResourceSet so its Flux can clone this (private) repo |
+| `mgmt/aws/addons/flux-apps/flux-pull-secret.sops.yaml` | `flux-apps` | GitHub PAT pull secret (basic auth), delivered to each workload cluster via ClusterResourceSet so its Flux can clone this (private) repo. The `mgmt/azure/addons/flux-apps/` and `mgmt/gcp/addons/flux-apps/` copies serve the same role for their environments. |
 | `mgmt/aws/infrastructure/konflate/konflate-token.sops.yaml` | `konflate` | `KONFLATE_TOKEN` (read-only GitHub PAT so konflate can list PRs and clone this private repo) and `KONFLATE_WRITE_TOKEN` (write-back credential konflate uses to post the PR summary comment and the `Konflate` commit status) |
 
 ## First-time setup

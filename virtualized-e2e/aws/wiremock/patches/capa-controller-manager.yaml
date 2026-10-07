@@ -6,7 +6,7 @@
 #     --type strategic --patch-file virtualized-e2e/aws/wiremock/patches/capa-controller-manager.yaml
 #
 # Mechanism (Phase 0 spike, docs/wiremock-e2e-spike-findings-aws.md):
-# AWS_ENDPOINT_URL is honored by CAPA v2.13.0 for every service tested; the
+# AWS_ENDPOINT_URL is honored by CAPA (v2.13.x at Phase 0, tested on v2.13.0) for every service; the
 # per-service variables are set as well so Phase 2 can split recordings per
 # service. SSL_CERT_FILE points Go's crypto/x509 at the mounted throwaway
 # CA. The wiremock-ca ConfigMap must exist in this namespace (volumes cannot

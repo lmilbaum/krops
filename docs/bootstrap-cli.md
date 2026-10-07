@@ -87,8 +87,8 @@ krops-bootstrap teardown local-host     # local-host teardown
 
 - `PROFILE` is the CLI's retained positional name. Its value names a section
   under `[environments.*]` in
-  [`bootstrap.toml`](../bootstrap.toml). The checked-in environments are `aws`,
-  `local-host`, and `local-talos`.
+  [`bootstrap.toml`](../bootstrap.toml). The checked-in environments are
+  `aws`, `local-host`, `local-talos`, `azure`, and `gcp`.
 - A non-empty `KROPS_PROFILE` overrides the positional profile. If
   neither is set, `bootstrap.default-environment` from `bootstrap.toml` is
   used.
@@ -112,8 +112,9 @@ pins together with their declarative counterparts. See
 
 - `pivot-sops-secrets` (optional, list): SOPS-encrypted manifests the pivot
   decrypts with `SOPS_AGE_KEY_FILE` (defaults to `AGE_KEY_FILE`) and applies to
-  the target before `clusterctl move`. Used by `azure` for the ASO/CAPZ
-  credential Secret that moved objects reference by name.
+  the target before `clusterctl move`. No checked-in environment uses it today;
+  it is kept for environments whose moved objects reference a SOPS-encrypted
+  Secret by name (see `pivot-manifests` as the secret-free replacement).
 - `pivot-manifests` (optional, list): plain (unencrypted) manifests applied to
   the target before `clusterctl move`, after the provider CRs. The
   workload-identity replacement for `pivot-sops-secrets`; used by `azure` for
@@ -139,8 +140,8 @@ pins together with their declarative counterparts. See
 | `REGISTRY_READY_RETRIES` | `120` | Local-host registry readiness attempts |
 | `LOCAL_RECONCILE_TIMEOUT` | `15m` | Local-host management and workload reconciliation waits |
 | `CONTAINER_ENGINE` | auto-detect Docker, then Podman | kind and registry engine |
-| `GIT_REPO_URL` | required for `aws` and `local-talos` | Management Flux Git source |
-| `GITHUB_TOKEN` | required for `aws` and `local-talos` | PAT with read access to the repository |
+| `GIT_REPO_URL` | required for GitHub-synced environments (`aws`, `local-talos`, `azure`, `gcp`) | Management Flux Git source |
+| `GITHUB_TOKEN` | required for GitHub-synced environments (`aws`, `local-talos`, `azure`, `gcp`) | PAT with read access to the repository |
 | `GITHUB_USER` | `git` | Basic-auth username paired with the PAT |
 | `AGE_KEY_FILE` | `age.agekey` | SOPS age private key loaded into `sops-age` |
 | `AGE_PUBLIC_KEY` | derived from `AGE_KEY_FILE` | Public key override during secret creation; must match the key file's public key when both are known (preflight fails fast on a mismatch) |
@@ -203,7 +204,7 @@ depend on engine- or version-specific error text.
 
 1. **Preflight:** validate the environment and required tools, select a running
    container engine, and perform the GitHub token/age-key checks for
-   GitHub-synced environments (`aws`, `local-talos`). A fallback native run
+   GitHub-synced environments (`aws`, `local-talos`, `azure`, `gcp`). A fallback native run
    requires
    `kind`, `helm`, `kubectl`, `clusterctl`, and `mise`; OCI-synced
    environments (`local-host`) also require `flux` and `curl`. The `aws`

@@ -26,7 +26,8 @@ Include:
 - Steps to reproduce, or the reasoning if reproduction needs cloud
   resources you cannot provision.
 - Impact as you understand it: what an attacker gains and which
-  environment (`aws`, `local-host`, `local-talos`) is affected.
+  environment (`aws`, `azure`, `gcp`, `local-host`, `local-talos`) is
+  affected.
 
 You will get an acknowledgement within 7 days. Maintainers volunteer their
 time; there is no paid response team and no bug bounty. Please allow up to
@@ -90,8 +91,10 @@ a gap.
 - S3 buckets block all public access, enforce SSE, enable versioning,
   disable ACLs, and deny non-TLS requests. See `docs/workload-resources.md`.
 - The `konflate` PR review workflow uses only the workflow `GITHUB_TOKEN`
-  with `contents: read` and is skipped for pull requests from forks so
-  untrusted sources are not rendered with repository permissions.
+  (`contents: read`, plus `pull-requests: write` and `issues: write` to post
+  the summary comment, plus `checks: read` / `statuses: read`) and is skipped
+  for pull requests from forks so untrusted sources are not rendered with
+  repository permissions. No PATs or stored secrets are used.
 - The toolbox image is signed with cosign keyless (GitHub OIDC, workflow
   identity) and carries an SPDX SBOM attestation. Verify with:
 

@@ -184,5 +184,5 @@ possible, those slices are CI-render only.
 | 6 | AWS platform API with render parity against the ACK objects | [#451](https://github.com/polarsquad/krops/issues/451) |
 | 7 | Git-declared connection-secret delivery to workload clusters | [#452](https://github.com/polarsquad/krops/issues/452) |
 | 8 | GCP plane and platform API | [#453](https://github.com/polarsquad/krops/issues/453) |
-| 8 | Azure plane and platform API | [#454](https://github.com/polarsquad/krops/issues/454) |
-| 9 | Guarded switch of a running environment between planes | [#455](https://github.com/polarsquad/krops/issues/455) |
+| 9 | Azure plane and platform API | [#454](https://github.com/polarsquad/krops/issues/454) |
+| 10 | Guarded switch of a running environment between planes | [#455](https://github.com/polarsquad/krops/issues/455) |

@@ -140,15 +140,15 @@ helper tasks run the same image with `--entrypoint mise`:
 ```sh
 docker build -f bootstrap-rs/Dockerfile -t krops-toolbox:dev .
 export TOOLBOX_IMAGE=krops-toolbox:dev
-cp .env.example .env        # aws and local-talos: fill in the Git source and PAT
+cp .env.example .env        # aws, azure, gcp, local-talos: fill in the Git source and PAT
 docker run --rm -it --user "$(id -u):$(id -g)" -e HOME=/tmp \
   -v "$PWD:/workspace" -w /workspace -e MISE_AUTO_INSTALL=0 \
   --entrypoint mise "$TOOLBOX_IMAGE" run sops-keygen   # first time only: age key for SOPS
-scripts/toolbox-run.sh bootstrap      # toolbox: bootstrap, Flux handoff, then pivot
+scripts/toolbox-run.sh bootstrap aws      # no profile = the aws reference environment
 export KUBECONFIG="$PWD/.kube/krops-mgmt.yaml"
 flux get kustomizations --watch
 mise run validate            # host: shell syntax, bootstrap.toml cross-check, overlays
-scripts/toolbox-run.sh teardown      # toolbox: reverse-order lifecycle cleanup
+scripts/toolbox-run.sh teardown aws      # toolbox: reverse-order lifecycle cleanup
 ```
 
 On macOS, a `local-host` run leaves the exported management kubeconfig
@@ -191,7 +191,10 @@ per-cluster AWS resources, so workload clusters hold no credentials and run
 no controllers. Credentials are a
 SOPS-encrypted CAPA profile in Git (the same static pattern authenticates
 the ACK controllers). It needs a GitHub PAT, an age key,
-AWS credentials, and the `clusterawsadm` CloudFormation stack.
+AWS credentials, and the `clusterawsadm` CloudFormation stack. Before any
+provisioning, bootstrap runs an EIP quota preflight (6 free EIPs in
+`eu-north-1`, 3 in `eu-west-1`) and stops if the account is short; see
+[Operations](docs/operations.md).
 
 ![krops aws architecture](docs/aws-infra.svg)
 
@@ -404,7 +407,9 @@ teardown controls, toolbox release, and current parity status.
 
 ```
 ├── .github/workflows/             Validation, Rust/toolbox CI, docs CI and
-│                                  Pages deploy, signed releases
+│                                  Pages deploy, the konflate PR render gate,
+│                                  the nightly air-gapped bundle build, and
+│                                  signed toolbox releases
 ├── airgap/                        Zarf air-gap bundle, image inventory, scripts
 ├── virtualized-e2e/               WireMock-virtualized e2e harness (#355):
 │                                  lib/ shared components + one arm per
@@ -439,7 +444,7 @@ teardown controls, toolbox release, and current parity status.
 │   ├── addons/flux-apps/         Installs Flux on each workload cluster
 │   │                              (HelmChartProxy + ClusterResourceSets)
 │   └── clusters/                 EKS cluster defs: eu-north-1, eu-west-1
-│                                  (ARM + GPU MachinePools); eu-north-1 also
+│                                  (x86 + ARM MachinePools); eu-north-1 also
 │                                  carries the self-managed management cluster
 ├── mgmt/local-host/              OCI-synced CAPI/CAPD local workload cluster
 │   │                              and its management cluster definition

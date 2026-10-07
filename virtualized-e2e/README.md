@@ -8,7 +8,7 @@ scripts check what arrived. No cloud account, no real credentials, no cloud
 resources.
 
 Phase 0 (spikes) proved an interception mechanism per cloud; the findings
-live in [docs/wiremock-e2e-spike-findings-aws.md](../../docs/wiremock-e2e-spike-findings-aws.md)
+live in [docs/wiremock-e2e-spike-findings-aws.md](../docs/wiremock-e2e-spike-findings-aws.md)
 and its Azure/GCP siblings. This tree is Phase 1: the shared harness library
 plus one arm per cloud.
 
@@ -33,9 +33,11 @@ virtualized-e2e/
         └── README.md           mechanism documentation
 ```
 
-`aws/` is the reference arm. `gcp/` is the second arm (CoreDNS rewrite +
-SAN-matched TLS, with the WIF credential repoint for the auth path). The
-Azure arm is a follow-up task.
+`aws/` is the reference arm (the global `AWS_ENDPOINT_URL` covers every
+service). `azure/` rewrites CAPZ/ASO control-plane and data-plane calls
+through CoreDNS to WireMock. `gcp/` does the CoreDNS rewrite plus
+SAN-matched TLS, with the WIF credential repoint for the auth path. All three
+arms are built.
 
 ## What is NOT here yet
 

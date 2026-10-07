@@ -1,6 +1,6 @@
 # GCP arm: WireMock interception for CAPG and KCC
 
-Second arm of the virtualized e2e harness (issue #355), after the AWS
+An arm of the virtualized e2e harness (issue #355), alongside the AWS
 reference arm. Mechanism proven by the Phase 0 spike; the full evidence is
 [docs/wiremock-e2e-spike-findings-gcp.md](../../../docs/wiremock-e2e-spike-findings-gcp.md).
 
