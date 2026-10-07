@@ -44,6 +44,29 @@ def test_doc_parent_directory_links_point_at_github_tree():
     assert rewrite_doc_links("[c](../bootstrap-rs/)") == f"[c]({GH}/tree/main/bootstrap-rs)"
 
 
+def test_proposal_parent_links_resolve_against_proposals_dir():
+    cases = [
+        (
+            f"[a](../architecture.md)",
+            f"[a]({GH}/blob/main/docs/architecture.md)",
+        ),
+        (
+            f"[o](../operations.md#pivot-recovery)",
+            f"[o]({GH}/blob/main/docs/operations.md#pivot-recovery)",
+        ),
+        (
+            f"[b](../../bootstrap.toml)",
+            f"[b]({GH}/blob/main/bootstrap.toml)",
+        ),
+        (
+            f"[c](../../bootstrap-rs/)",
+            f"[c]({GH}/tree/main/bootstrap-rs)",
+        ),
+    ]
+    for inp, expected in cases:
+        assert rewrite_doc_links(inp, base="docs/proposals") == expected
+
+
 def test_doc_sibling_links_untouched():
     text = "[o](./operations.md#pivot-recovery) [s](secrets.md) [x](#write-back)"
     assert rewrite_doc_links(text) == text
@@ -92,8 +115,9 @@ def test_assemble_includes_proposals_folder(tmp_path):
     krops = tmp_path / "krops"
     (krops / "docs" / "proposals").mkdir(parents=True)
     (krops / "README.md").write_text("# krops\n")
-    text = f"# P\n[abs]({GH}/blob/main/bootstrap.toml) [sib](q.md) [s](#x)\n"
-    (krops / "docs" / "proposals" / "p.md").write_text(text)
+    input_text = f"# P\n[abs]({GH}/blob/main/bootstrap.toml) [sib](q.md) [s](#x)\n[up](../architecture.md) [root](../../bootstrap.toml)\n"
+    expected_text = f"# P\n[abs]({GH}/blob/main/bootstrap.toml) [sib](q.md) [s](#x)\n[up]({GH}/blob/main/docs/architecture.md) [root]({GH}/blob/main/bootstrap.toml)\n"
+    (krops / "docs" / "proposals" / "p.md").write_text(input_text)
     (krops / "docs" / "proposals" / "notes.txt").write_text("skip")
     src = tmp_path / "src"
     src.mkdir()
@@ -101,5 +125,5 @@ def test_assemble_includes_proposals_folder(tmp_path):
 
     assemble(krops=krops, src=src, out=out)
 
-    assert (out / "proposals" / "p.md").read_text() == text
+    assert (out / "proposals" / "p.md").read_text() == expected_text
     assert not (out / "proposals" / "notes.txt").exists()
