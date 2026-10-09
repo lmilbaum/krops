@@ -40,6 +40,13 @@ This form assumes the standard `/var/run/docker.sock` daemon socket. Use the
 wrapper below for Docker contexts or Podman installations with a different
 host socket.
 
+The lifecycle wrapper also creates `$HOME/.krops-azure` and mounts it at
+`AZURE_CONFIG_DIR` in the container (default `/root/.azure`). It forwards that
+resolved path after loading `.env`, which takes precedence over shell values.
+This preserves the Azure CLI login from subscription preparation across
+bootstrap and pivot. Raw Azure runs must mount the same cache themselves; see
+[Azure setup](./azure.md).
+
 The AWS environment also needs the Git source, PAT, age key, and AWS
 credentials inside the container. Source the repository `.env` so shell quotes
 are removed, then pass values by name rather than putting secrets in argv:

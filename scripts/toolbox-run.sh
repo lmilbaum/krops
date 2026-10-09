@@ -72,6 +72,11 @@ else
   unset KROPS_OCI_GIT_SHA
 fi
 
+# Share the Azure login cache used by subscription preparation. Resolve after
+# .env so the mount and the forwarded variable agree with mise precedence.
+export AZURE_CONFIG_DIR="${AZURE_CONFIG_DIR:-/root/.azure}"
+mkdir -p "$HOME/.krops-azure"
+
 TOOLBOX_IMAGE="${TOOLBOX_IMAGE:-ghcr.io/polarsquad/krops-toolbox:latest}"
 
 # ── Engine detection (bootstrap.sh parity) ────────────────────────────────────
@@ -202,6 +207,7 @@ exec "$CONTAINER_ENGINE" run --rm ${TTY_ARGS[@]+"${TTY_ARGS[@]}"} \
   -v "$REPO_ROOT:/workspace" \
   -v "$REPO_ROOT/.kube:/root/.kube" \
   -v "$SOCK_SOURCE:/var/run/docker.sock" \
+  -v "$HOME/.krops-azure:$AZURE_CONFIG_DIR" \
   -w /workspace \
   "${IMMUTABLE_ENV_ARGS[@]}" \
   "${MUTABLE_ENV_ARGS[@]}" \

@@ -63,6 +63,11 @@ if ! python3 tests/test-toolbox-run-env-precedence.py; then
   echo "    FAILED: toolbox-run.sh .env precedence" >&2
   fail=1
 fi
+echo "==> Azure toolbox session and Arc login ordering"
+if ! python3 tests/test-toolbox-run-azure-session.py; then
+  echo "    FAILED: Azure toolbox session" >&2
+  fail=1
+fi
 echo "==> sops-keygen prints the public key"
 if ! python3 tests/test-sops-keygen-prints-public-key.py; then
   echo "    FAILED: sops-keygen public key" >&2

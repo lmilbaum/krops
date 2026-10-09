@@ -84,10 +84,13 @@ docker run --rm -it \
 ```
 
 `arc-federate` runs inside the toolbox as the `post-kind-create-task` and
-needs the `az` session: pass `AZURE_CONFIG_DIR=/root/.azure` in `.env` and
-mount the same host directory into the lifecycle run (`scripts/toolbox-run.sh`
-forwards `AZURE_CONFIG_DIR`; add `-v "$HOME/.krops-azure:/root/.azure"` to a
-raw lifecycle run). To debug it by hand, use the cluster run shape from
+needs the `az` session. `scripts/toolbox-run.sh` automatically creates and mounts
+`$HOME/.krops-azure` at the effective `AZURE_CONFIG_DIR` inside the container
+(default `/root/.azure`). Set a different container path in `.env` if needed;
+`.env` takes precedence over the shell. It reuses the preparation session, or
+starts device-code login if no session exists, before selecting the subscription.
+For a raw lifecycle run, mount the same cache at the container config path.
+To debug it by hand, use the cluster run shape from
 [Helper tasks in the toolbox](./operations.md#helper-tasks-in-the-toolbox)
 with `--network kind -e KUBECONFIG=/workspace/.kube/kind.yaml
 -v "$HOME/.krops-azure:/root/.azure"` and `-E azure run arc-federate`.

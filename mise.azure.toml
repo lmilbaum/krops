@@ -73,6 +73,9 @@ EOF
 description = "Federate the kind bootstrap cluster (issue #236): Arc OIDC issuer, apiserver issuer patch, FICs for CAPZ/ASO workload identity. Idempotent; run by bootstrap-rs (post-kind-create-task), safe to run by hand for debugging."
 run = '''
 set -eu
+# mise reloads .env inside the toolbox; keep an empty value consistent with
+# the lifecycle wrapper's cache mount default.
+export AZURE_CONFIG_DIR="${AZURE_CONFIG_DIR:-/root/.azure}"
 : "${AZURE_SUBSCRIPTION_ID:?set AZURE_SUBSCRIPTION_ID in .env or the shell}"
 ARC_NAME="${ARC_NAME:-krops-azure-bootstrap}"
 ARC_RG="${ARC_RG:-krops-shared}"
@@ -83,12 +86,11 @@ KIND_NODE="${KIND_NODE:-mgmt-control-plane}"
 KIND_CONTEXT="${KIND_CONTEXT:-kind-mgmt}"
 kubectl config use-context "$KIND_CONTEXT"
 
-az account set --subscription "$AZURE_SUBSCRIPTION_ID"
 if ! az account show >/dev/null 2>&1; then
   echo "==> no Azure session; starting device-code login"
   az login --use-device-code --output none
-  az account set --subscription "$AZURE_SUBSCRIPTION_ID"
 fi
+az account set --subscription "$AZURE_SUBSCRIPTION_ID"
 if ! az extension show --name connectedk8s >/dev/null 2>&1; then
   # renovate does not track az CLI extensions; version pinned at authoring time.
   az extension add --name connectedk8s --version 1.11.3 --yes --output none

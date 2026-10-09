@@ -38,6 +38,7 @@ def run_once(extra_env: dict):
         os.chmod(bin_dir / "docker", 0o755)
         env = dict(
             os.environ,
+            HOME=str(tmp / "home"),
             PATH=f"{bin_dir}:{os.environ['PATH']}",
             CONTAINER_ENGINE="docker",
             TOOLBOX_IMAGE="krops-toolbox:test",
