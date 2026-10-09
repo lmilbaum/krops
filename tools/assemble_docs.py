@@ -9,6 +9,7 @@ images additionally become hyperlinks to their raw .svg files on GitHub.
 
 from __future__ import annotations
 
+import posixpath
 import re
 import shutil
 from pathlib import Path
@@ -65,14 +66,17 @@ def rewrite_readme_links(text: str) -> str:
     return _link_diagram_images(LINK_RE.sub(sub, text))
 
 
-def rewrite_doc_links(text: str) -> str:
+def rewrite_doc_links(text: str, base: str = "docs") -> str:
     """docs/*.md stay at the docs root; only ../ links leave the documentation -> GitHub."""
 
     def sub(match: re.Match[str]) -> str:
         pre, target, post = match.groups()
         if _is_external(target) or not target.startswith("../"):
             return match.group(0)
-        return f"{pre}{github_url(target[len('../'):])}{post}"
+        repo_path = posixpath.normpath(posixpath.join(base, target))
+        if target.endswith("/"):
+            repo_path += "/"
+        return f"{pre}{github_url(repo_path)}{post}"
 
     return _link_diagram_images(LINK_RE.sub(sub, text))
 
@@ -91,14 +95,14 @@ def assemble(krops: Path = KROPS, src: Path = SRC, out: Path = OUT) -> Path:
     (out / "index.md").write_text(rewrite_readme_links((krops / "README.md").read_text()))
     for path in sorted((krops / "docs").iterdir()):
         if path.suffix == ".md":
-            (out / path.name).write_text(rewrite_doc_links(path.read_text()))
+            (out / path.name).write_text(rewrite_doc_links(path.read_text(), base="docs"))
         elif path.suffix == ".svg":
             shutil.copy2(path, out / path.name)
     proposals = krops / "docs" / "proposals"
     if proposals.is_dir():
         (out / "proposals").mkdir()
         for path in sorted(proposals.glob("*.md")):
-            (out / "proposals" / path.name).write_text(rewrite_doc_links(path.read_text()))
+            (out / "proposals" / path.name).write_text(rewrite_doc_links(path.read_text(), base="docs/proposals"))
     shutil.copytree(src, out, dirs_exist_ok=True)
     return out
 
