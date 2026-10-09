@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 """Offline regressions for kubeadm inventory validation and correction."""
 import contextlib
+import hashlib
+import http.client
 import importlib.util
 import io
 import sys
 import tempfile
 import unittest
+import unittest.mock
 from pathlib import Path
 from unittest.mock import patch
 
@@ -82,6 +85,45 @@ class InventoryTests(unittest.TestCase):
                 result, after, _, _ = self.run_gate(broken, True)
                 self.assertEqual(result, 0)
                 self.assertEqual(after, complete)
+
+
+class RegistryDigestTests(unittest.TestCase):
+    """Tests for registry_digest() digest-source logic."""
+
+    def _make_response(self, header=None, body=b"some body bytes"):
+        msg = http.client.HTTPMessage()
+        if header is not None:
+            msg["Docker-Content-Digest"] = header
+        resp = unittest.mock.MagicMock()
+        resp.headers = msg
+        resp.read.return_value = body
+        resp.__enter__ = lambda s: s
+        resp.__exit__ = unittest.mock.MagicMock(return_value=False)
+        return resp
+
+    def test_prefers_header(self):
+        header_digest = "sha256:" + "c" * 64
+        fake = self._make_response(header=header_digest, body=b"transformed")
+        with unittest.mock.patch.object(gate.urllib.request, "urlopen", return_value=fake):
+            result = gate.registry_digest("registry.example.com/img", "latest")
+        self.assertEqual(result, header_digest)
+        fake.read.assert_not_called()
+
+    def test_falls_back_to_body_without_header(self):
+        body = b"raw manifest bytes"
+        fake = self._make_response(header=None, body=body)
+        with unittest.mock.patch.object(gate.urllib.request, "urlopen", return_value=fake):
+            result = gate.registry_digest("registry.example.com/img", "latest")
+        expected = "sha256:" + hashlib.sha256(body).hexdigest()
+        self.assertEqual(result, expected)
+
+    def test_ignores_malformed_header(self):
+        body = b"raw manifest bytes"
+        fake = self._make_response(header="md5:abc", body=body)
+        with unittest.mock.patch.object(gate.urllib.request, "urlopen", return_value=fake):
+            result = gate.registry_digest("registry.example.com/img", "latest")
+        expected = "sha256:" + hashlib.sha256(body).hexdigest()
+        self.assertEqual(result, expected)
 
 
 if __name__ == "__main__":
