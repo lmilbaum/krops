@@ -6,7 +6,9 @@ source "$(dirname "$0")/config.env"
 export AWS_PAGER="" AWS_EC2_METADATA_DISABLED=true AWS_RETRY_MODE=standard AWS_MAX_ATTEMPTS=3
 status=0
 errors="$(mktemp)" || exit 1
-trap 'rm -f "$errors"' EXIT
+data="$(mktemp)" || { rm -f "$errors"; exit 1; }
+trap 'rm -f "$errors" "$data"' EXIT
+helper="$(dirname "$0")/tag_data.py"
 fail() { echo "ERROR: $*" >&2; status=1; }
 
 account="$(aws sts get-caller-identity --query Account --output text)" || exit 1
@@ -16,7 +18,7 @@ if [ "$account" != "$EXPECTED_ACCOUNT" ] || [ "$EXPECTED_ACCOUNT" != 12039230109
 fi
 
 reconcile_cluster() {
-  local region="$1" cluster="$2" tags run_id revision expires_at run_kind extra
+  local region="$1" cluster="$2" tags run_id revision expires_at run_kind tag_json
   local groups group asgs asg instances instance members row id state owner current_run current_revision current_expiry current_kind
   local seen=' '
   case "$region:$cluster" in
@@ -24,14 +26,18 @@ reconcile_cluster() {
     *) fail "refusing non-allowlisted cluster $region:$cluster"; return ;;
   esac
   tags="$(aws eks describe-cluster --region "$region" --name "$cluster" \
-    --query 'cluster.tags.["krops.io/run-id","krops.io/revision","krops.io/expires-at","krops.io/run-kind"]' --output text)" \
+    --output json)" \
     || { fail "$cluster: reading cluster tags"; return; }
-  read -r run_id revision expires_at run_kind extra <<< "$tags"
-  if [ -n "${extra:-}" ] || [[ ! "$run_id" =~ ^[a-zA-Z0-9._:-]+$ ]] || [[ ! "$revision" =~ ^[a-zA-Z0-9._:/-]+$ ]] \
-    || [[ ! "$run_kind" =~ ^[a-zA-Z0-9._:-]+$ ]] || [[ ! "$expires_at" =~ ^(never|[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z)$ ]] \
-    || [ "$run_id" = None ] || [ "$revision" = None ] || [ "$run_kind" = None ]; then
+  if ! printf '%s' "$tags" | python3 "$helper" cluster >"$data"; then
     fail "$cluster: missing or malformed lifecycle tags"; return
   fi
+  {
+    IFS= read -r -d '' run_id
+    IFS= read -r -d '' revision
+    IFS= read -r -d '' expires_at
+    IFS= read -r -d '' run_kind
+    IFS= read -r -d '' tag_json
+  } <"$data" || { fail "$cluster: reading validated tag fields"; return; }
   groups="$(aws eks list-nodegroups --region "$region" --cluster-name "$cluster" --query 'nodegroups[]' --output text)" \
     || { fail "$cluster: listing nodegroups"; return; }
   for group in $groups; do
@@ -54,23 +60,31 @@ reconcile_cluster() {
           || { fail "$cluster/$instance: rechecking ASG membership"; continue; }
         if ! [[ " ${members//$'\t'/ } " =~ (^|[[:space:]])$instance([[:space:]]|$) ]]; then continue; fi
         row="$(aws ec2 describe-instances --region "$region" --instance-ids "$instance" \
-          --query 'Reservations[].Instances[].[InstanceId,State.Name,Tags[?Key==`aws:eks:cluster-name`].Value|[0],Tags[?Key==`krops.io/run-id`].Value|[0],Tags[?Key==`krops.io/revision`].Value|[0],Tags[?Key==`krops.io/expires-at`].Value|[0],Tags[?Key==`krops.io/run-kind`].Value|[0]]' \
-          --output text 2>"$errors")" || {
+          --output json 2>"$errors")" || {
             if ! grep -q 'InvalidInstanceID.NotFound' "$errors"; then fail "$cluster/$instance: describing worker"; fi
             continue
           }
-        [ -n "$row" ] || continue
-        read -r id state owner current_run current_revision current_expiry current_kind extra <<< "$row"
+        if ! printf '%s' "$row" | python3 "$helper" instance >"$data"; then
+          fail "$cluster/$instance: malformed instance data"; continue
+        fi
+        [ -s "$data" ] || continue
+        {
+          IFS= read -r -d '' id
+          IFS= read -r -d '' state
+          IFS= read -r -d '' owner
+          IFS= read -r -d '' current_run
+          IFS= read -r -d '' current_revision
+          IFS= read -r -d '' current_expiry
+          IFS= read -r -d '' current_kind
+        } <"$data" || { fail "$cluster/$instance: reading instance fields"; continue; }
         if [ "$state" = terminated ] || [ "$state" = shutting-down ]; then continue; fi
-        if [ "$id" != "$instance" ] || [ "$owner" != "$cluster" ] || [ -n "${extra:-}" ] \
+        if [ "$id" != "$instance" ] || [ "$owner" != "$cluster" ] \
           || [[ ! "$state" =~ ^(pending|running|stopping|stopped)$ ]]; then
           fail "$cluster/$instance: ownership or instance response mismatch"; continue
         fi
         if [ "$current_run" = "$run_id" ] && [ "$current_revision" = "$revision" ] \
           && [ "$current_expiry" = "$expires_at" ] && [ "$current_kind" = "$run_kind" ]; then continue; fi
-        aws ec2 create-tags --region "$region" --resources "$instance" --tags \
-          "Key=krops.io/run-id,Value=$run_id" "Key=krops.io/revision,Value=$revision" \
-          "Key=krops.io/expires-at,Value=$expires_at" "Key=krops.io/run-kind,Value=$run_kind" \
+        aws ec2 create-tags --region "$region" --resources "$instance" --tags "$tag_json" \
           || { fail "$cluster/$instance: writing lifecycle tags"; continue; }
         echo "Tagged $region/$cluster/$instance"
       done

@@ -998,6 +998,15 @@ and a successful Job are required. A worker that leaves its ASG before discovery
 can remain untagged. A cluster with missing or malformed metadata is skipped
 and the Job fails while independent clusters are still processed.
 
+Lifecycle values are decoded from AWS JSON and passed through NUL-delimited
+fields without whitespace splitting or trimming. Tag writes use a JSON array,
+preserving supported CAPA ASCII punctuation and whitespace exactly, including
+leading/trailing space, tab, LF, FF, and CR. Vertical tab and non-ASCII values
+are rejected; lifecycle values must contain 1–256 ASCII bytes.
+Expiry must be `never` or an exact UTC `YYYY-MM-DDTHH:MM:SSZ` timestamp with a
+valid calendar date and clock time (years 0001–9999); invalid dates stop that
+cluster's writes while other clusters continue.
+
 The Job uses AWS CLI pagination for nodegroups/ASGs, checks account and the
 three committed region/cluster pairs, deduplicates workers, then rechecks ASG
 membership and EKS ownership before applying drift-only changes. Disappearing

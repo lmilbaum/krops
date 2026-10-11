@@ -28,7 +28,9 @@ cluster = arg('--cluster-name') if '--cluster-name' in a else arg('--name') if '
 if operation == 'get-caller-identity': output = s.get('account', '120392301094')
 elif cluster is not None and s.get('fail_cluster') == cluster:
     print('AccessDenied', file=sys.stderr); p.write_text(json.dumps(s)); sys.exit(1)
-elif operation == 'describe-cluster': output = '\\t'.join(s['clusters'][cluster]['tags'])
+elif operation == 'describe-cluster':
+    output = json.dumps(s['clusters'][cluster].get('response', {'cluster': {'tags': dict(zip(['krops.io/run-id', 'krops.io/revision', 'krops.io/expires-at', 'krops.io/run-kind'], s['clusters'][cluster]['tags']))}}))
+    if s.get('malformed_cluster') == cluster: output = '{bad json'
 elif operation == 'list-nodegroups': output = 'pool-a\\npool-b'
 elif operation == 'describe-nodegroup': output = s['clusters'][cluster].get('asgs', 'asg-' + cluster)
 elif operation == 'describe-auto-scaling-groups':
@@ -42,14 +44,17 @@ elif operation == 'describe-instances':
         print('InvalidInstanceID.NotFound' if s.get('disappear') == i else 'AccessDenied', file=sys.stderr)
         p.write_text(json.dumps(s)); sys.exit(1)
     v = s['instances'][i]
-    output = '\\t'.join([i, v.get('state', 'running'), v['owner'], *v['tags']])
+    tags = [{'Key': 'aws:eks:cluster-name', 'Value': v['owner']}]
+    tags += [{'Key': k, 'Value': value} for k, value in zip(['krops.io/run-id', 'krops.io/revision', 'krops.io/expires-at', 'krops.io/run-kind'], v['tags']) if value is not None]
+    output = json.dumps(v.get('response', {'Reservations': [{'Instances': [{'InstanceId': i, 'State': {'Name': v.get('state', 'running')}, 'Tags': tags}]}]}))
 elif operation == 'create-tags':
     i = arg('--resources')
     if s.get('deny_write') == i:
         print('AccessDenied', file=sys.stderr); p.write_text(json.dumps(s)); sys.exit(1)
-    tags = a[a.index('--tags') + 1:]
+    assert len(a[a.index('--tags') + 1:]) == 1
+    tags = json.loads(arg('--tags'))
     s['writes'].append([arg('--region'), i, tags])
-    s['instances'][i]['tags'] = [t.split(',Value=', 1)[1] for t in tags]
+    s['instances'][i]['tags'] = [t['Value'] for t in tags]
     output = ''
 else: raise RuntimeError(a)
 p.write_text(json.dumps(s))
@@ -61,7 +66,7 @@ class WorkerTags(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.path = Path(self.tmp.name)
-        for name in ('reconcile.sh', 'config.env'):
+        for name in ('reconcile.sh', 'config.env', 'tag_data.py'):
             shutil.copy(COMPONENT / name, self.path / name)
         (self.path / 'aws').write_text(FAKE)
         (self.path / 'aws').chmod(0o755)
@@ -70,7 +75,7 @@ class WorkerTags(unittest.TestCase):
             instance = f'i-{n + 1:017x}'
             self.state['clusters'][cluster] = {'tags': [f'run-{n}', f'sha-{n}', 'never', 'ci']}
             self.state['asgs']['asg-' + cluster] = instance
-            self.state['instances'][instance] = {'owner': cluster, 'tags': ['None'] * 4, 'other': 'preserved'}
+            self.state['instances'][instance] = {'owner': cluster, 'tags': [None] * 4, 'other': 'preserved'}
 
     def tearDown(self):
         self.tmp.cleanup()
@@ -88,7 +93,7 @@ class WorkerTags(unittest.TestCase):
         self.assertEqual(len(self.state['writes']), 3)
         for _, instance, tags in self.state['writes']:
             n = int(instance[2:], 16) - 1
-            self.assertEqual(tags, [f'Key={key},Value={value}' for key, value in zip(KEYS, self.state['clusters'][CLUSTERS[n]]['tags'])])
+            self.assertEqual(tags, [{'Key': key, 'Value': value} for key, value in zip(KEYS, self.state['clusters'][CLUSTERS[n]]['tags'])])
             self.assertEqual(self.state['instances'][instance]['other'], 'preserved')
         self.run_reconcile()
         self.assertEqual(len(self.state['writes']), 3)
@@ -97,7 +102,7 @@ class WorkerTags(unittest.TestCase):
         self.assertEqual(len(self.state['writes']), 4)
         new = 'i-00000000000000004'
         self.state['asgs']['asg-' + CLUSTERS[0]] += '\t' + new
-        self.state['instances'][new] = {'owner': CLUSTERS[0], 'tags': ['None'] * 4}
+        self.state['instances'][new] = {'owner': CLUSTERS[0], 'tags': [None] * 4}
         self.run_reconcile()
         self.assertEqual(len(self.state['writes']), 5)
 
@@ -107,7 +112,7 @@ class WorkerTags(unittest.TestCase):
                 if mode == 'account': self.state['account'] = '999999999999'
                 elif mode == 'owner': self.state['instances']['i-00000000000000001']['owner'] = 'foreign'
                 elif mode == 'invalid_id': self.state['asgs']['asg-' + CLUSTERS[0]] = 'i-bad'
-                elif mode == 'missing_tag': self.state['clusters'][CLUSTERS[0]]['tags'][0] = 'None'
+                elif mode == 'missing_tag': self.state['clusters'][CLUSTERS[0]]['tags'][0] = None
                 elif mode == 'malformed_tag': self.state['clusters'][CLUSTERS[0]]['tags'][2] = 'tomorrow'
                 else: self.state['membership_changed'] = True
                 self.state['writes'] = []
@@ -123,7 +128,7 @@ class WorkerTags(unittest.TestCase):
             instance = f'i-{n + 1:017x}'
             self.state['clusters'][cluster] = {'tags': [f'run-{n}', f'sha-{n}', 'never', 'ci']}
             self.state['asgs']['asg-' + cluster] = instance
-            self.state['instances'][instance] = {'owner': cluster, 'tags': ['None'] * 4, 'other': 'preserved'}
+            self.state['instances'][instance] = {'owner': cluster, 'tags': [None] * 4, 'other': 'preserved'}
 
     def test_failure_isolation_disappearance_and_termination(self):
         for mode in ('fail_cluster', 'deny_write', 'describe_error', 'disappear', 'terminated'):
@@ -179,8 +184,81 @@ class WorkerTags(unittest.TestCase):
                        if volume['name'] == 'scripts')
         self.assertEqual(scripts['configMap']['name'], config['metadata']['name'])
         self.assertEqual(config['data']['reconcile.sh'], (COMPONENT / 'reconcile.sh').read_text())
+        self.assertEqual(config['data']['tag_data.py'], (COMPONENT / 'tag_data.py').read_text())
         parent = yaml.safe_load((COMPONENT.parent / 'kustomization.yaml').read_text())
         self.assertIn('worker-run-tags', parent['resources'])
+
+    def test_structured_values_preserved_and_idempotent(self):
+        values = ['\t run @example+42=prod/one \n', '\r feature/team @commit+1=ok \f', '2028-02-29T12:34:56Z', ' ci @ops+blue=one \r\n']
+        self.state['clusters'][CLUSTERS[0]]['tags'] = values
+        result = self.run_reconcile()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.state['instances']['i-00000000000000001']['tags'], values)
+        writes = len(self.state['writes'])
+        self.assertEqual(self.run_reconcile().returncode, 0)
+        self.assertEqual(len(self.state['writes']), writes)
+
+    def test_invalid_json_and_required_values_block_writes(self):
+        for response in [{}, {'cluster': {'tags': {}}},
+                         {'cluster': {'tags': dict(zip(KEYS, ['', 'sha', 'never', 'ci']))}},
+                         {'cluster': {'tags': dict(zip(KEYS, [42, 'sha', 'never', 'ci']))}}]:
+            self.setUp_state()
+            self.state['clusters'][CLUSTERS[0]]['response'] = response
+            self.assertEqual(self.run_reconcile().returncode, 1)
+            self.assertFalse(any(write[1] == 'i-00000000000000001' for write in self.state['writes']))
+        self.setUp_state()
+        self.state['malformed_cluster'] = CLUSTERS[0]
+        self.assertEqual(self.run_reconcile().returncode, 1)
+        self.assertEqual(len(self.state['writes']), 2)
+        self.setUp_state()
+        self.state['instances']['i-00000000000000001']['response'] = {'Reservations': 'bad'}
+        self.assertEqual(self.run_reconcile().returncode, 1)
+        self.assertEqual(len(self.state['writes']), 2)
+
+    def helper(self, values):
+        result = subprocess.run(['python3', str(COMPONENT / 'tag_data.py'), 'cluster'],
+                                input=json.dumps({'cluster': {'tags': dict(zip(KEYS, values))}}).encode(),
+                                capture_output=True, check=False)
+        return result
+
+    def test_helper_requires_each_nonempty_string(self):
+        valid = dict(zip(KEYS, ['run', 'sha', 'never', 'ci']))
+        for key in KEYS:
+            for value in [None, '', 42]:
+                tags = {**valid, key: value}
+                result = subprocess.run(['python3', str(COMPONENT / 'tag_data.py'), 'cluster'],
+                                        input=json.dumps({'cluster': {'tags': tags}}).encode(),
+                                        capture_output=True, check=False)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(result.stdout, b'')
+            tags = {k: v for k, v in valid.items() if k != key}
+            result = subprocess.run(['python3', str(COMPONENT / 'tag_data.py'), 'cluster'],
+                                    input=json.dumps({'cluster': {'tags': tags}}).encode(),
+                                    capture_output=True, check=False)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(result.stdout, b'')
+
+    def test_expiry_calendar_validation_and_encoding_bounds(self):
+        invalid = ['2026-13-01T00:00:00Z', '2026-01-32T00:00:00Z', '2027-02-29T00:00:00Z',
+                   '2026-01-01T24:00:00Z', '2026-01-01T00:60:00Z', '2026-01-01T00:00:60Z',
+                   '0000-01-01T00:00:00Z', '2026-1-01T00:00:00Z']
+        for expiry in invalid:
+            with self.subTest(expiry=expiry):
+                self.assertNotEqual(self.helper(['run', 'sha', expiry, 'ci']).returncode, 0)
+        for expiry in ['never', '2028-02-29T12:34:56Z', '0001-01-01T00:00:00Z', '9999-12-31T23:59:59Z']:
+            self.assertEqual(self.helper(['run', 'sha', expiry, 'ci']).returncode, 0)
+        for value in ['x' * 257, 'bad\0value', 'nonasciié', 'bad,comma', 'bad\vvalue']:
+            self.assertNotEqual(self.helper([value, 'sha', 'never', 'ci']).returncode, 0)
+        values = ['x' * 256, '\t exact @+=/ value \n\f\r', 'never', ' ci ']
+        result = self.helper(values)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        fields = result.stdout.split(b'\0')
+        self.assertEqual([field.decode() for field in fields[:4]], values)
+        self.assertEqual(json.loads(fields[4]), [{'Key': key, 'Value': value} for key, value in zip(KEYS, values)])
+        self.setUp_state()
+        self.state['clusters'][CLUSTERS[0]]['tags'][2] = invalid[2]
+        self.assertEqual(self.run_reconcile().returncode, 1)
+        self.assertFalse(any(write[1] == 'i-00000000000000001' for write in self.state['writes']))
 
     def test_manifest_and_docs_contract(self):
         job = yaml.safe_load((COMPONENT / 'cronjob.yaml').read_text())

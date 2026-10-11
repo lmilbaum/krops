@@ -17,7 +17,10 @@ resources. There is no app source code here, only declarative infrastructure.
     Role CRs (`workload-resources/`), account-global IAM, konflate.
   - `infrastructure/worker-run-tags/`: minute AWS CLI CronJob in ack-system
     that eventually repairs four lifecycle tags on discoverable managed EKS
-    workers, using per-cluster EKS metadata. Exact account/region/cluster guards
+    workers, using per-cluster EKS metadata. `tag_data.py` validates AWS JSON,
+    preserves supported tag characters/whitespace through NUL-delimited fields,
+    and checks exact UTC expiry calendar/time semantics before JSON tag writes.
+    Exact account/region/cluster guards
     and fresh ASG membership/ownership checks precede writes. Requires an
     external static-principal IAM grant; see docs/aws-iam.md. Offline regressions
     (`tests/test-worker-run-tags.py`) run in validate and CI. Orphans that leave

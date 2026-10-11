@@ -8,4 +8,5 @@ configMapGenerator:
     namespace: ack-system
     files:
       - reconcile.sh
+      - tag_data.py
       - config.env
