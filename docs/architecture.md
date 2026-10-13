@@ -356,7 +356,7 @@ flowchart TD
         CAPIS[capi-system]
         CAPGS["capg-system (CAPG v1.13.1)<br/>WIF credential Secret, secret-free"]
         CAAPH[caaph-system]
-        KCCO["kcc-operator (1.158.0, pinned bundle)"]
+        KCCO["kcc-operator (1.158.0, Helm chart via OCIRepository)"]
         KCC["kcc (ConfigConnector in cnrm-system)<br/>WIF credential Secret"]
         KCCI["kcc-identity (KCC-managed)<br/>krops pool + mgmt provider + GSA grants"]
         WRES["workload-resources (KCC CRs, issue #560)<br/>networking / storage / postgres / iam"]

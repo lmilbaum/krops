@@ -1,0 +1,16 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: kcc-operator
+  namespace: flux-system
+spec:
+  interval: 1h
+  url: oci://ghcr.io/lioramilbaum/config-connector-helm/config-connector
+  ref:
+    tag: "1.158.0"
+    digest: sha256:1ba505e3f253402b4e9bd047ae7f1ffcd7ace44e5f799d0a2add5a621197eb0a
+  verify:
+    provider: cosign
+    matchOIDCIdentity:
+      - issuer: https://token.actions.githubusercontent.com
+        subject: https://github.com/lioramilbaum/config-connector-helm/.github/workflows/publish.yaml@refs/heads/main
