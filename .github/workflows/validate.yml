@@ -121,7 +121,7 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v10.3.0
         with:
-          version: "0.13.0"
+          version: "0.13.3"
 
       - name: Set up Node.js
         uses: actions/setup-node@v7.1.0
@@ -245,7 +245,7 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v10.3.0
         with:
-          version: "0.13.0"
+          version: "0.13.3"
 
       - name: ruff check (unused imports, subprocess.run check=)
         run: |
